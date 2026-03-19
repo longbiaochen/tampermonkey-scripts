@@ -4,6 +4,10 @@
 // @version      0.3.0
 // @description  Hide the right column by default and remove the "Live on X" chip on post detail pages.
 // @author       Longbiao CHEN
+// @homepageURL  https://github.com/longbiaochen/x-tweaks
+// @supportURL   https://github.com/longbiaochen/x-tweaks/issues
+// @updateURL    https://raw.githubusercontent.com/longbiaochen/x-tweaks/main/x-tweaks.user.js
+// @downloadURL  https://raw.githubusercontent.com/longbiaochen/x-tweaks/main/x-tweaks.user.js
 // @match        https://x.com/*
 // @match        https://twitter.com/*
 // @run-at       document-idle
