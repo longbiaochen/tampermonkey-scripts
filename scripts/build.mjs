@@ -6,11 +6,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
 const sourcePath = path.join(projectRoot, "src", "x-tweaks.js");
 const outputPath = path.join(projectRoot, "x-tweaks.user.js");
+const packageJsonPath = path.join(projectRoot, "package.json");
+
+const packageJson = JSON.parse(await readFile(packageJsonPath, "utf8"));
+const version = packageJson.version;
 
 const metadata = `// ==UserScript==
 // @name         X Tweaks
 // @namespace    http://tampermonkey.net/
-// @version      0.3.0
+// @version      ${version}
 // @description  Hide the right column by default and remove the "Live on X" chip on post detail pages.
 // @author       Longbiao CHEN
 // @homepageURL  https://github.com/longbiaochen/x-tweaks

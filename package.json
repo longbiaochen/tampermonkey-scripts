@@ -1,12 +1,13 @@
 {
   "name": "x-tweaks",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "node scripts/validate.mjs",
-    "validate": "npm run build && npm test"
+    "validate": "npm run build && npm test",
+    "release:patch": "npm version patch --no-git-tag-version && npm run validate"
   },
   "dependencies": {
     "jsdom": "^26.1.0"

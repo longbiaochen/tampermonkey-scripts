@@ -28,6 +28,17 @@ Closed-loop update path:
 
 This repo is already set up to use the raw GitHub URL as the canonical install and update source.
 
+Important: Tampermonkey only updates when `@version` increases. This project uses `package.json` as the source of truth for the userscript version.
+
+To publish a new Tampermonkey-visible update:
+
+```bash
+npm run release:patch
+git add package.json package-lock.json x-tweaks.user.js
+git commit -m "Release X Tweaks"
+git push origin main
+```
+
 ## Development
 
 Install dependencies:
