@@ -67,8 +67,8 @@ function createXTweaks(win, options = {}) {
 
       #${TOGGLE_BUTTON_ID} {
         position: fixed;
+        top: 16px;
         right: 16px;
-        bottom: 16px;
         z-index: 2147483647;
         border: 1px solid rgba(83, 100, 113, 0.45);
         border-radius: 9999px;
