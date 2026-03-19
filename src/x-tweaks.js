@@ -1,15 +1,3 @@
-// ==UserScript==
-// @name         X Tweaks
-// @namespace    http://tampermonkey.net/
-// @version      0.3.0
-// @description  Hide the right column by default and remove the "Live on X" chip on post detail pages.
-// @author       Longbiao CHEN
-// @match        https://x.com/*
-// @match        https://twitter.com/*
-// @run-at       document-idle
-// @grant        none
-// ==/UserScript==
-
 function createXTweaks(win, options = {}) {
   const doc = win.document;
   const STATUS_PATH_RE = /^\/[^/]+\/status\/\d+/;
@@ -310,6 +298,4 @@ function runXTweaks(win) {
   return app;
 }
 
-
-
-runXTweaks(window);
+export { createXTweaks, runXTweaks };

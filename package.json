@@ -1,0 +1,14 @@
+{
+  "name": "x-tweaks",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node scripts/validate.mjs",
+    "validate": "npm run build && npm test"
+  },
+  "dependencies": {
+    "jsdom": "^26.1.0"
+  }
+}
