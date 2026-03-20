@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         X Tweaks
 // @namespace    http://tampermonkey.net/
-// @version      0.3.1
+// @version      0.3.2
 // @description  Hide the right column by default and remove the "Live on X" chip on post detail pages.
 // @author       Longbiao CHEN
 // @homepageURL  https://github.com/longbiaochen/x-tweaks
@@ -77,8 +77,16 @@ function createXTweaks(win, options = {}) {
       }
 
       html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] > ${PRIMARY_COLUMN_SELECTOR} {
-        max-width: 680px;
-        width: 100%;
+        width: min(100%, clamp(720px, 88vw, 980px));
+        max-width: min(100%, 980px);
+        min-width: 0;
+      }
+
+      @media (max-width: 1280px) {
+        html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] > ${PRIMARY_COLUMN_SELECTOR} {
+          width: min(100%, 92vw);
+          max-width: 92vw;
+        }
       }
 
       #${TOGGLE_BUTTON_ID} {

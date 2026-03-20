@@ -1,13 +1,15 @@
 {
   "name": "x-tweaks",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "node scripts/validate.mjs",
     "validate": "npm run build && npm test",
-    "release:patch": "npm version patch --no-git-tag-version && npm run validate"
+    "release:patch": "npm version patch --no-git-tag-version && npm run validate",
+    "chrome:check-installed": "node scripts/check-installed-version.mjs",
+    "chrome:trigger-update": "node scripts/trigger-chrome-update.mjs"
   },
   "dependencies": {
     "jsdom": "^26.1.0"

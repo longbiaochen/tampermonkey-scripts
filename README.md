@@ -39,6 +39,18 @@ git commit -m "Release X Tweaks"
 git push origin main
 ```
 
+To trigger the update in your real Chrome profile and verify that Tampermonkey picked it up:
+
+```bash
+npm run chrome:trigger-update
+```
+
+To inspect the currently installed `X Tweaks` version in your Chrome profile:
+
+```bash
+npm run chrome:check-installed
+```
+
 ## Development
 
 Install dependencies:
