@@ -23,20 +23,9 @@ const beforeVersion = getInstalledVersion();
 console.log(`Installed before trigger: ${beforeVersion || "not found"}`);
 console.log(`Expected target version: ${expectedVersion}`);
 
-const appleScript = `
-tell application "Google Chrome"
-  activate
-  if (count of windows) = 0 then
-    make new window
-  end if
-  tell front window
-    make new tab with properties {URL:"${rawUrl}"}
-    set active tab index to (count of tabs)
-  end tell
-end tell
-`;
-
-execFileSync("osascript", ["-e", appleScript], { stdio: "ignore" });
+execFileSync("open", ["-a", "/Applications/Google Chrome.app", rawUrl], {
+  stdio: ["ignore", "ignore", "ignore"]
+});
 
 const deadline = Date.now() + 30000;
 let installedVersion = beforeVersion;
