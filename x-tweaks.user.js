@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         X Tweaks
 // @namespace    http://tampermonkey.net/
-// @version      0.3.5
+// @version      0.3.6
 // @description  Fold the left column to icons, toggle the right column from X's floating dock, and remove the "Live on X" chip on post detail pages.
 // @author       Longbiao CHEN
 // @homepageURL  https://github.com/longbiaochen/x-tweaks
@@ -365,32 +365,45 @@ function createXTweaks(win, options = {}) {
     return current?.parentElement === host ? current : null;
   }
 
+  function findCommonAncestor(left, right) {
+    const seen = new Set();
+    let current = left;
+
+    while (current && current instanceof win.HTMLElement) {
+      seen.add(current);
+      current = current.parentElement;
+    }
+
+    current = right;
+    while (current && current instanceof win.HTMLElement) {
+      if (seen.has(current)) {
+        return current;
+      }
+      current = current.parentElement;
+    }
+
+    return null;
+  }
+
   function findFloatingDockHost() {
     const explicitHost = doc.querySelector(`[${FLOATING_DOCK_TEST_ATTR}="true"]`);
     if (explicitHost instanceof win.HTMLElement) {
       return explicitHost;
     }
 
-    const candidates = Array.from(doc.querySelectorAll("button, a[href], [role='button']")).filter(
-      isVisibleDockButton
-    );
+    const candidates = Array.from(doc.querySelectorAll("button, a[href], [role='button']"))
+      .filter(isVisibleDockButton)
+      .sort((left, right) => {
+        const leftRect = left.getBoundingClientRect();
+        const rightRect = right.getBoundingClientRect();
+        return rightRect.bottom - leftRect.bottom || rightRect.right - leftRect.right;
+      });
 
-    const groups = new Map();
-    for (const candidate of candidates) {
-      const key = candidate.parentElement;
-      if (!(key instanceof win.HTMLElement)) {
-        continue;
-      }
-      const group = groups.get(key) || [];
-      group.push(candidate);
-      groups.set(key, group);
+    if (candidates.length < 2) {
+      return null;
     }
 
-    const ranked = Array.from(groups.entries())
-      .filter(([, buttons]) => buttons.length >= 2)
-      .sort((left, right) => right[1].length - left[1].length);
-
-    return ranked[0]?.[0] || null;
+    return findCommonAncestor(candidates[0], candidates[1]);
   }
 
   function createRightToggleMount(referenceButton) {
