@@ -25,11 +25,16 @@ async function runCase(name, fn) {
   }
 }
 
-await runCase("hide right column by default and toggle back on", async () => {
+await runCase("fold left column by default and keep right column visible", async () => {
   const dom = createDom({
     body: `
       <div id="app-shell">
         <div id="layout">
+          <aside id="left-column">
+            <nav>
+              <a href="/home"><span>Home</span></a>
+            </nav>
+          </aside>
           <main data-testid="primaryColumn">Primary</main>
           <aside data-testid="sidebarColumn">Sidebar</aside>
         </div>
@@ -41,18 +46,25 @@ await runCase("hide right column by default and toggle back on", async () => {
   app.start();
 
   const html = dom.window.document.documentElement;
-  const toggle = dom.window.document.getElementById("x-tweaks-right-column-toggle");
+  const leftToggle = dom.window.document.getElementById("x-tweaks-left-column-toggle");
+  const rightToggle = dom.window.document.getElementById("x-tweaks-right-column-toggle");
   const layout = dom.window.document.getElementById("layout");
+  const leftColumn = dom.window.document.getElementById("left-column");
 
-  assert.equal(html.getAttribute("data-x-tweaks-right-column-hidden"), "true");
-  assert.equal(toggle?.textContent, "Show right column");
-  assert.equal(layout?.getAttribute("data-x-tweaks-layout-root"), "true");
-
-  toggle?.click();
-
+  assert.equal(html.getAttribute("data-x-tweaks-left-column-folded"), "true");
   assert.equal(html.getAttribute("data-x-tweaks-right-column-hidden"), "false");
-  assert.equal(toggle?.textContent, "Hide right column");
-  assert.equal(dom.window.localStorage.getItem("x-tweaks:right-column-visible"), "true");
+  assert.equal(layout?.getAttribute("data-x-tweaks-layout-root"), "true");
+  assert.equal(leftColumn?.getAttribute("data-x-tweaks-left-column"), "true");
+  assert.equal(leftToggle?.getAttribute("aria-label"), "Expand left column");
+  assert.equal(rightToggle?.getAttribute("aria-label"), "Hide right column");
+
+  leftToggle?.click();
+  rightToggle?.click();
+
+  assert.equal(html.getAttribute("data-x-tweaks-left-column-folded"), "false");
+  assert.equal(html.getAttribute("data-x-tweaks-right-column-hidden"), "true");
+  assert.equal(dom.window.localStorage.getItem("x-tweaks:left-column-folded"), "false");
+  assert.equal(dom.window.localStorage.getItem("x-tweaks:right-column-visible"), "false");
 
   app.stop();
   dom.window.close();
@@ -116,6 +128,11 @@ await runCase("handle dynamic sidebar and live-chip mutations", async () => {
     "beforeend",
     `
       <div id="layout">
+        <aside id="left-column">
+          <nav>
+            <a href="/home"><span>Home</span></a>
+          </nav>
+        </aside>
         <main data-testid="primaryColumn">Primary</main>
         <aside data-testid="sidebarColumn">Sidebar</aside>
         <button id="dynamic-chip"><span>Live on X</span></button>
@@ -127,9 +144,17 @@ await runCase("handle dynamic sidebar and live-chip mutations", async () => {
 
   assert.equal(
     dom.window.document.documentElement.getAttribute("data-x-tweaks-right-column-hidden"),
-    "true"
+    "false"
   );
   assert.equal(dom.window.document.getElementById("layout")?.getAttribute("data-x-tweaks-layout-root"), "true");
+  assert.equal(
+    dom.window.document.documentElement.getAttribute("data-x-tweaks-left-column-folded"),
+    "true"
+  );
+  assert.equal(
+    dom.window.document.getElementById("left-column")?.getAttribute("data-x-tweaks-left-column"),
+    "true"
+  );
   assert.equal(dom.window.document.getElementById("dynamic-chip")?.style.display, "none");
 
   app.stop();
