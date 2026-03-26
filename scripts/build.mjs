@@ -15,7 +15,7 @@ const metadata = `// ==UserScript==
 // @name         X Tweaks
 // @namespace    http://tampermonkey.net/
 // @version      ${version}
-// @description  Fold the left column to icons, toggle the right column, and remove the "Live on X" chip on post detail pages.
+// @description  Fold the left column to icons, toggle the right column from X's floating dock, and remove the "Live on X" chip on post detail pages.
 // @author       Longbiao CHEN
 // @homepageURL  https://github.com/longbiaochen/x-tweaks
 // @supportURL   https://github.com/longbiaochen/x-tweaks/issues

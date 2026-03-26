@@ -46,7 +46,6 @@ await runCase("fold left column by default and keep right column visible", async
   app.start();
 
   const html = dom.window.document.documentElement;
-  const leftToggle = dom.window.document.getElementById("x-tweaks-left-column-toggle");
   const rightToggle = dom.window.document.getElementById("x-tweaks-right-column-toggle");
   const layout = dom.window.document.getElementById("layout");
   const leftColumn = dom.window.document.getElementById("left-column");
@@ -55,15 +54,52 @@ await runCase("fold left column by default and keep right column visible", async
   assert.equal(html.getAttribute("data-x-tweaks-right-column-hidden"), "false");
   assert.equal(layout?.getAttribute("data-x-tweaks-layout-root"), "true");
   assert.equal(leftColumn?.getAttribute("data-x-tweaks-left-column"), "true");
-  assert.equal(leftToggle?.getAttribute("aria-label"), "Expand left column");
+  assert.equal(dom.window.document.getElementById("x-tweaks-left-column-toggle"), null);
+  assert.equal(rightToggle, null);
+
+  assert.equal(dom.window.localStorage.getItem("x-tweaks:left-column-folded"), null);
+  assert.equal(dom.window.localStorage.getItem("x-tweaks:right-column-visible"), null);
+
+  app.stop();
+  dom.window.close();
+});
+
+await runCase("inject right-column toggle into floating dock as third button", async () => {
+  const dom = createDom({
+    body: `
+      <div id="layout">
+        <aside id="left-column">
+          <nav>
+            <a href="/home"><span>Home</span></a>
+          </nav>
+        </aside>
+        <main data-testid="primaryColumn">Primary</main>
+        <aside data-testid="sidebarColumn">Sidebar</aside>
+      </div>
+      <div id="dock" data-x-tweaks-floating-dock="true">
+        <div class="dock-item"><button id="grok" class="native-button" type="button">G</button></div>
+        <div class="dock-item"><button id="chat" class="native-button" type="button">C</button></div>
+      </div>
+    `
+  });
+
+  const app = createXTweaks(dom.window);
+  app.start();
+
+  const host = dom.window.document.getElementById("dock");
+  const rightToggle = dom.window.document.getElementById("x-tweaks-right-column-toggle");
+  const directChildren = Array.from(host?.children || []);
+
+  assert.equal(directChildren.length, 3);
+  assert.equal(directChildren[2]?.getAttribute("data-x-tweaks-right-column-toggle-host"), "true");
   assert.equal(rightToggle?.getAttribute("aria-label"), "Hide right column");
 
-  leftToggle?.click();
   rightToggle?.click();
 
-  assert.equal(html.getAttribute("data-x-tweaks-left-column-folded"), "false");
-  assert.equal(html.getAttribute("data-x-tweaks-right-column-hidden"), "true");
-  assert.equal(dom.window.localStorage.getItem("x-tweaks:left-column-folded"), "false");
+  assert.equal(
+    dom.window.document.documentElement.getAttribute("data-x-tweaks-right-column-hidden"),
+    "true"
+  );
   assert.equal(dom.window.localStorage.getItem("x-tweaks:right-column-visible"), "false");
 
   app.stop();
@@ -127,6 +163,10 @@ await runCase("handle dynamic sidebar and live-chip mutations", async () => {
   shell?.insertAdjacentHTML(
     "beforeend",
     `
+      <div id="dock" data-x-tweaks-floating-dock="true">
+        <div class="dock-item"><button id="grok" class="native-button" type="button">G</button></div>
+        <div class="dock-item"><button id="chat" class="native-button" type="button">C</button></div>
+      </div>
       <div id="layout">
         <aside id="left-column">
           <nav>
@@ -155,6 +195,8 @@ await runCase("handle dynamic sidebar and live-chip mutations", async () => {
     dom.window.document.getElementById("left-column")?.getAttribute("data-x-tweaks-left-column"),
     "true"
   );
+  assert.equal(dom.window.document.querySelectorAll("#x-tweaks-right-column-toggle").length, 1);
+  assert.equal(dom.window.document.getElementById("dock")?.children.length, 3);
   assert.equal(dom.window.document.getElementById("dynamic-chip")?.style.display, "none");
 
   app.stop();

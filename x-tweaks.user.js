@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         X Tweaks
 // @namespace    http://tampermonkey.net/
-// @version      0.3.4
-// @description  Fold the left column to icons, toggle the right column, and remove the "Live on X" chip on post detail pages.
+// @version      0.3.5
+// @description  Fold the left column to icons, toggle the right column from X's floating dock, and remove the "Live on X" chip on post detail pages.
 // @author       Longbiao CHEN
 // @homepageURL  https://github.com/longbiaochen/x-tweaks
 // @supportURL   https://github.com/longbiaochen/x-tweaks/issues
@@ -27,11 +27,10 @@ function createXTweaks(win, options = {}) {
   const LEFT_COLUMN_FOLDED_ATTR = "data-x-tweaks-left-column-folded";
   const RIGHT_COLUMN_HIDDEN_ATTR = "data-x-tweaks-right-column-hidden";
   const LAYOUT_ROOT_ATTR = "data-x-tweaks-layout-root";
-  const CONTROLS_CONTAINER_ID = "x-tweaks-controls";
-  const LEFT_TOGGLE_BUTTON_ID = "x-tweaks-left-column-toggle";
   const RIGHT_TOGGLE_BUTTON_ID = "x-tweaks-right-column-toggle";
+  const RIGHT_TOGGLE_HOST_ATTR = "data-x-tweaks-right-column-toggle-host";
+  const FLOATING_DOCK_TEST_ATTR = "data-x-tweaks-floating-dock";
   const STYLE_ID = "x-tweaks-styles";
-  const LEFT_COLUMN_STORAGE_KEY = "x-tweaks:left-column-folded";
   const RIGHT_COLUMN_STORAGE_KEY = "x-tweaks:right-column-visible";
 
   let hiddenCount = 0;
@@ -60,10 +59,6 @@ function createXTweaks(win, options = {}) {
     return stored === "true";
   }
 
-  function readStoredLeftColumnFolded() {
-    return readStoredBool(LEFT_COLUMN_STORAGE_KEY, true);
-  }
-
   function readStoredRightColumnVisibility() {
     return readStoredBool(RIGHT_COLUMN_STORAGE_KEY, true);
   }
@@ -72,7 +67,7 @@ function createXTweaks(win, options = {}) {
     win.__xTweaksState = {
       active: true,
       hiddenCount,
-      leftColumnFolded: readStoredLeftColumnFolded(),
+      leftColumnFolded: true,
       rightColumnVisible: readStoredRightColumnVisibility(),
       leftColumnCount: doc.querySelectorAll(LEFT_COLUMN_SELECTOR).length,
       rightColumnCount: doc.querySelectorAll(RIGHT_COLUMN_SELECTOR).length
@@ -169,47 +164,30 @@ function createXTweaks(win, options = {}) {
         }
       }
 
-      #${CONTROLS_CONTAINER_ID} {
-        position: fixed;
-        bottom: 144px;
-        right: 16px;
-        z-index: 2147483647;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-
-      #${CONTROLS_CONTAINER_ID} button {
-        border: 1px solid rgba(83, 100, 113, 0.45);
-        border-radius: 9999px;
-        background: rgba(15, 20, 25, 0.92);
-        color: #f7f9f9;
-        width: 48px;
-        height: 48px;
+      #${RIGHT_TOGGLE_BUTTON_ID} {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        padding: 0;
+        margin: 0;
+        width: 100%;
+        height: 100%;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
       }
 
-      #${CONTROLS_CONTAINER_ID} button:hover {
-        background: rgba(29, 39, 49, 0.96);
-      }
-
-      #${CONTROLS_CONTAINER_ID} button[aria-pressed="true"] {
-        background: #1d9bf0;
-        border-color: rgba(29, 155, 240, 0.8);
-      }
-
-      #${CONTROLS_CONTAINER_ID} button:focus-visible {
+      #${RIGHT_TOGGLE_BUTTON_ID}:focus-visible {
         outline: 2px solid #1d9bf0;
         outline-offset: 2px;
       }
 
-      #${CONTROLS_CONTAINER_ID} svg {
-        width: 22px;
-        height: 22px;
+      #${RIGHT_TOGGLE_BUTTON_ID} svg {
+        width: 1.25rem;
+        height: 1.25rem;
         fill: none;
         stroke: currentColor;
         stroke-width: 1.75;
@@ -302,49 +280,12 @@ function createXTweaks(win, options = {}) {
   }
 
   function buttonSvg(name) {
-    if (name === "left") {
-      return `
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M15 6l-6 6 6 6"></path>
-          <path d="M5 5v14"></path>
-        </svg>
-      `;
-    }
-
     return `
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <rect x="4" y="5" width="16" height="14" rx="2"></rect>
         <path d="M14 5v14"></path>
       </svg>
     `;
-  }
-
-  function updateLeftColumnButton() {
-    const button = doc.getElementById(LEFT_TOGGLE_BUTTON_ID);
-    if (!(button instanceof win.HTMLButtonElement)) {
-      return;
-    }
-
-    const folded = readStoredLeftColumnFolded();
-    const nextPressed = folded ? "true" : "false";
-    const nextTitle = folded ? "Expand the left column" : "Fold the left column to icons";
-    const nextLabel = folded ? "Expand left column" : "Fold left column";
-
-    if (button.innerHTML !== buttonSvg("left")) {
-      button.innerHTML = buttonSvg("left");
-    }
-
-    if (button.getAttribute("aria-pressed") !== nextPressed) {
-      button.setAttribute("aria-pressed", nextPressed);
-    }
-
-    if (button.getAttribute("aria-label") !== nextLabel) {
-      button.setAttribute("aria-label", nextLabel);
-    }
-
-    if (button.title !== nextTitle) {
-      button.title = nextTitle;
-    }
   }
 
   function updateRightColumnButton() {
@@ -375,56 +316,139 @@ function createXTweaks(win, options = {}) {
     }
   }
 
-  function updateToggleButtons() {
-    updateLeftColumnButton();
+  function updateToggleButton() {
     updateRightColumnButton();
   }
 
-  function setLeftColumnFolded(folded) {
-    win.localStorage.setItem(LEFT_COLUMN_STORAGE_KEY, folded ? "true" : "false");
-    doc.documentElement.setAttribute(LEFT_COLUMN_FOLDED_ATTR, folded ? "true" : "false");
-    updateToggleButtons();
+  function applyRightColumnVisible(visible, { persist } = { persist: true }) {
+    if (persist) {
+      win.localStorage.setItem(RIGHT_COLUMN_STORAGE_KEY, visible ? "true" : "false");
+    }
+    doc.documentElement.setAttribute(RIGHT_COLUMN_HIDDEN_ATTR, visible ? "false" : "true");
+    updateToggleButton();
     updateState();
   }
 
   function setRightColumnVisible(visible) {
-    win.localStorage.setItem(RIGHT_COLUMN_STORAGE_KEY, visible ? "true" : "false");
-    doc.documentElement.setAttribute(RIGHT_COLUMN_HIDDEN_ATTR, visible ? "false" : "true");
-    updateToggleButtons();
-    updateState();
+    applyRightColumnVisible(visible, { persist: true });
   }
 
-  function ensureToggleButtons() {
-    let controls = doc.getElementById(CONTROLS_CONTAINER_ID);
-    if (!(controls instanceof win.HTMLElement)) {
-      controls = doc.createElement("div");
-      controls.id = CONTROLS_CONTAINER_ID;
-      doc.body.appendChild(controls);
+  function isVisibleDockButton(node) {
+    if (!(node instanceof win.HTMLElement) || node.id === RIGHT_TOGGLE_BUTTON_ID) {
+      return false;
     }
 
-    let leftButton = doc.getElementById(LEFT_TOGGLE_BUTTON_ID);
-    if (!(leftButton instanceof win.HTMLButtonElement)) {
-      leftButton = doc.createElement("button");
-      leftButton.id = LEFT_TOGGLE_BUTTON_ID;
-      leftButton.type = "button";
-      leftButton.addEventListener("click", () => {
-        setLeftColumnFolded(!readStoredLeftColumnFolded());
-      });
-      controls.appendChild(leftButton);
+    if (!node.matches("button, a[href], [role='button']")) {
+      return false;
     }
 
-    let rightButton = doc.getElementById(RIGHT_TOGGLE_BUTTON_ID);
-    if (!(rightButton instanceof win.HTMLButtonElement)) {
-      rightButton = doc.createElement("button");
-      rightButton.id = RIGHT_TOGGLE_BUTTON_ID;
-      rightButton.type = "button";
-      rightButton.addEventListener("click", () => {
-        setRightColumnVisible(!readStoredRightColumnVisibility());
-      });
-      controls.appendChild(rightButton);
+    const rect = node.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      return false;
     }
 
-    updateToggleButtons();
+    return (
+      rect.width >= 32 &&
+      rect.width <= 72 &&
+      rect.height >= 32 &&
+      rect.height <= 72 &&
+      rect.right >= win.innerWidth - 180 &&
+      rect.bottom >= win.innerHeight - 280
+    );
+  }
+
+  function getDockItem(host, node) {
+    let current = node;
+    while (current?.parentElement && current.parentElement !== host) {
+      current = current.parentElement;
+    }
+    return current?.parentElement === host ? current : null;
+  }
+
+  function findFloatingDockHost() {
+    const explicitHost = doc.querySelector(`[${FLOATING_DOCK_TEST_ATTR}="true"]`);
+    if (explicitHost instanceof win.HTMLElement) {
+      return explicitHost;
+    }
+
+    const candidates = Array.from(doc.querySelectorAll("button, a[href], [role='button']")).filter(
+      isVisibleDockButton
+    );
+
+    const groups = new Map();
+    for (const candidate of candidates) {
+      const key = candidate.parentElement;
+      if (!(key instanceof win.HTMLElement)) {
+        continue;
+      }
+      const group = groups.get(key) || [];
+      group.push(candidate);
+      groups.set(key, group);
+    }
+
+    const ranked = Array.from(groups.entries())
+      .filter(([, buttons]) => buttons.length >= 2)
+      .sort((left, right) => right[1].length - left[1].length);
+
+    return ranked[0]?.[0] || null;
+  }
+
+  function createRightToggleMount(referenceButton) {
+    const mount = doc.createElement("div");
+    mount.setAttribute(RIGHT_TOGGLE_HOST_ATTR, "true");
+
+    const button = doc.createElement("button");
+    button.id = RIGHT_TOGGLE_BUTTON_ID;
+    button.type = "button";
+    button.className = referenceButton.className;
+    if (referenceButton.getAttribute("style")) {
+      button.setAttribute("style", referenceButton.getAttribute("style"));
+    }
+
+    button.addEventListener("click", () => {
+      setRightColumnVisible(!readStoredRightColumnVisibility());
+    });
+
+    mount.className = referenceButton.parentElement?.className || "";
+    if (referenceButton.parentElement?.getAttribute("style")) {
+      mount.setAttribute("style", referenceButton.parentElement.getAttribute("style"));
+    }
+
+    mount.appendChild(button);
+    return mount;
+  }
+
+  function ensureRightColumnToggleButton() {
+    const host = findFloatingDockHost();
+    if (!(host instanceof win.HTMLElement)) {
+      return;
+    }
+
+    const nativeButtons = Array.from(host.querySelectorAll("button, a[href], [role='button']")).filter(
+      (node) => node instanceof win.HTMLElement && node.id !== RIGHT_TOGGLE_BUTTON_ID
+    );
+
+    if (nativeButtons.length < 2) {
+      return;
+    }
+
+    const secondNativeButton = nativeButtons[1];
+    const anchorItem = getDockItem(host, secondNativeButton);
+    if (!(anchorItem instanceof win.HTMLElement)) {
+      return;
+    }
+
+    const existingButton = doc.getElementById(RIGHT_TOGGLE_BUTTON_ID);
+    let mount = existingButton?.closest(`[${RIGHT_TOGGLE_HOST_ATTR}="true"]`);
+    if (!(mount instanceof win.HTMLElement)) {
+      mount = createRightToggleMount(secondNativeButton);
+    }
+
+    if (anchorItem.nextSibling !== mount) {
+      host.insertBefore(mount, anchorItem.nextSibling);
+    }
+
+    updateToggleButton();
   }
 
   function shouldHideLiveChip(node) {
@@ -501,14 +525,15 @@ function createXTweaks(win, options = {}) {
 
     markLayoutRoots(node);
     hiddenCount += processLiveChip(node);
+    ensureRightColumnToggleButton();
   }
 
   function start() {
     ensureStyles();
     markLayoutRoots(doc.body);
-    ensureToggleButtons();
-    setLeftColumnFolded(readStoredLeftColumnFolded());
-    setRightColumnVisible(readStoredRightColumnVisibility());
+    doc.documentElement.setAttribute(LEFT_COLUMN_FOLDED_ATTR, "true");
+    ensureRightColumnToggleButton();
+    applyRightColumnVisible(readStoredRightColumnVisibility(), { persist: false });
     hiddenCount += processLiveChip(doc.body);
     updateState();
 
@@ -519,7 +544,7 @@ function createXTweaks(win, options = {}) {
         }
       }
 
-      ensureToggleButtons();
+      ensureRightColumnToggleButton();
       updateState();
     });
 
@@ -536,19 +561,16 @@ function createXTweaks(win, options = {}) {
   return {
     start,
     stop,
-    setLeftColumnFolded,
     setRightColumnVisible,
-    isLeftColumnFolded: readStoredLeftColumnFolded,
+    isLeftColumnFolded: () => true,
     isRightColumnVisible: readStoredRightColumnVisibility,
     selectors: {
       LEFT_COLUMN_SELECTOR,
       RIGHT_COLUMN_SELECTOR,
       PRIMARY_COLUMN_SELECTOR,
-      LEFT_TOGGLE_BUTTON_ID,
       RIGHT_TOGGLE_BUTTON_ID
     },
     storageKeys: {
-      leftColumnFolded: LEFT_COLUMN_STORAGE_KEY,
       rightColumnVisible: RIGHT_COLUMN_STORAGE_KEY
     }
   };

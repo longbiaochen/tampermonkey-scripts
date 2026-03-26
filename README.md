@@ -4,8 +4,8 @@ Tampermonkey userscript for X/Twitter.
 
 Current tweaks:
 
-- Fold the left column to icons by default and provide an arrow toggle to expand it.
-- Keep the right column visible by default and provide a sidebar toggle button near X's floating dock.
+- Fold the left column to icons by default without hiding it.
+- Keep the right column visible by default and provide a sidebar toggle button in X's floating dock.
 - Hide the "Live on X" chip on post detail pages.
 
 ## Install
