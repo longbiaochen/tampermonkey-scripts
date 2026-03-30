@@ -65,6 +65,42 @@ export async function runXTweaksTests() {
     dom.window.close();
   });
 
+  await runCase("replace X icon links with Weibo icons", async () => {
+    const dom = createDom({
+      body: `
+        <div id="layout">
+          <aside id="left-column">
+            <nav>
+              <a href="/home"><span>Home</span></a>
+            </nav>
+          </aside>
+          <main data-testid="primaryColumn">Primary</main>
+          <aside data-testid="sidebarColumn">Sidebar</aside>
+        </div>
+      `
+    });
+
+    dom.window.document.head.innerHTML = `
+      <link rel="icon" href="https://x.com/favicon.ico">
+      <link rel="apple-touch-icon" href="https://abs.twimg.com/responsive-web/client-web/icon-ios.77d25eba.png">
+    `;
+
+    const app = createXTweaks(dom.window);
+    app.start();
+
+    const iconLinks = Array.from(dom.window.document.head.querySelectorAll("link[rel~='icon']"));
+    const appleTouchIcon = dom.window.document.head.querySelector("link[rel='apple-touch-icon']");
+
+    assert.ok(iconLinks.length >= 1);
+    for (const link of iconLinks) {
+      assert.equal(link.href, "https://weibo.com/favicon.ico");
+    }
+    assert.equal(appleTouchIcon?.href, "https://weibo.com/favicon.ico");
+
+    app.stop();
+    dom.window.close();
+  });
+
   await runCase("inject right-column toggle into floating dock as third button", async () => {
     const dom = createDom({
       body: `

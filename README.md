@@ -1,6 +1,6 @@
 # Tampermonkey Scripts
 
-Maintain multiple Tampermonkey userscripts in one repository.
+Maintain multiple Tampermonkey userscripts in the `tampermonkey-scripts` repository.
 
 ## Included Scripts
 
@@ -15,7 +15,21 @@ Tweaks for X/Twitter:
 Install URL:
 
 ```text
-https://raw.githubusercontent.com/longbiaochen/tampermonkey/main/dist/x-tweaks.user.js
+https://raw.githubusercontent.com/longbiaochen/tampermonkey-scripts/main/dist/x-tweaks.user.js
+```
+
+### `gitlab-tweaks`
+
+Tweaks for GitLab:
+
+- Redirect the projects dropdown to `/dashboard/projects?sort=name_asc`.
+- Rewrite board and issue header links to stable `/-/issues?key=1` URLs.
+- Collapse contextual right sidebars that waste horizontal space.
+
+Install URL:
+
+```text
+https://raw.githubusercontent.com/longbiaochen/tampermonkey-scripts/main/dist/gitlab-tweaks.user.js
 ```
 
 ## Repository Layout
@@ -86,5 +100,5 @@ npm run validate
 Open the local debug harness:
 
 ```bash
-open /Users/longbiao/Projects/tampermonkey/debug/index.html
+open /Users/longbiao/Projects/tampermonkey-scripts/debug/index.html
 ```

@@ -4,32 +4,38 @@
 // @version      1.8.1
 // @description  Quality-of-life tweaks for GitLab issue boards and project pages.
 // @author       Longbiao CHEN
+// @homepageURL  https://github.com/longbiaochen/tampermonkey-scripts#gitlab-tweaks
+// @supportURL   https://github.com/longbiaochen/tampermonkey-scripts/issues
+// @updateURL    https://raw.githubusercontent.com/longbiaochen/tampermonkey-scripts/main/dist/gitlab-tweaks.user.js
+// @downloadURL  https://raw.githubusercontent.com/longbiaochen/tampermonkey-scripts/main/dist/gitlab-tweaks.user.js
 // @license      GPL-3.0-only
 // @match        *://*/*
 // @run-at       document-idle
 // @grant        none
 // ==/UserScript==
 
-(function () {
-  "use strict";
-
+function createGitLabTweaks(win, options = {}) {
+  const doc = win.document;
   const PROJECT_DASHBOARD_PATH = "/dashboard/projects?sort=name_asc";
   const pendingRoots = new Set();
   let flushScheduled = false;
+  let observer = null;
+  const navigate =
+    typeof options.navigate === "function" ? options.navigate : (url) => win.location.assign(url);
 
   function isElement(value) {
-    return value instanceof HTMLElement;
+    return value instanceof win.HTMLElement;
   }
 
   function isGitLabPage() {
-    const appName = document.querySelector('meta[name="application-name"]');
+    const appName = doc.querySelector('meta[name="application-name"]');
     if (appName?.getAttribute("content") === "GitLab") {
       return true;
     }
 
     return Boolean(
-      document.querySelector('meta[content*="GitLab"]') ||
-        document.querySelector(".nav-sidebar, .boards-app, .issue-boards-content, .gl-layout")
+      doc.querySelector('meta[content*="GitLab"]') ||
+        doc.querySelector(".nav-sidebar, .boards-app, .issue-boards-content, .gl-layout")
     );
   }
 
@@ -48,18 +54,18 @@
   }
 
   function absolutize(pathname) {
-    return new URL(pathname, window.location.origin).toString();
+    return new URL(pathname, win.location.origin).toString();
   }
 
   function bindProjectsShortcut() {
-    const dropdown = document.querySelector("#nav-groups-dropdown");
+    const dropdown = doc.querySelector("#nav-groups-dropdown");
     if (!isElement(dropdown) || !once(dropdown, "projects-shortcut")) {
       return;
     }
 
     dropdown.addEventListener("click", (event) => {
       event.preventDefault();
-      window.location.assign(absolutize(PROJECT_DASHBOARD_PATH));
+      navigate(absolutize(PROJECT_DASHBOARD_PATH));
     });
   }
 
@@ -73,7 +79,7 @@
       return;
     }
 
-    const url = new URL(href, window.location.origin);
+    const url = new URL(href, win.location.origin);
     if (!url.pathname.includes("/-/issues")) {
       const basePath = url.pathname.replace(/\/+$/, "");
       url.pathname = `${basePath}/-/issues`;
@@ -86,7 +92,7 @@
     anchor.setAttribute("href", `${url.pathname}${url.search}${url.hash}`);
   }
 
-  function rewriteHeaderLinks(root = document) {
+  function rewriteHeaderLinks(root = doc) {
     const selectors = [
       "div.gl-display-flex.align-items-center.flex-wrap > h2 > a",
       ".boards-list-header a",
@@ -108,7 +114,7 @@
     ];
 
     for (const selector of candidates) {
-      const element = document.querySelector(selector);
+      const element = doc.querySelector(selector);
       if (!isElement(element)) {
         continue;
       }
@@ -118,7 +124,7 @@
         element.classList.add("right-sidebar-collapsed");
       }
 
-      const toggle = document.querySelector(
+      const toggle = doc.querySelector(
         '[aria-label*="Collapse sidebar"], [data-testid="collapse-sidebar"], .right-sidebar-toggle'
       );
       if (isElement(toggle) && once(toggle, "sidebar-toggle-clicked")) {
@@ -128,7 +134,7 @@
     }
   }
 
-  function applyTweaks(root = document) {
+  function applyTweaks(root = doc) {
     bindProjectsShortcut();
     rewriteHeaderLinks(root);
     collapseSidebar();
@@ -138,7 +144,7 @@
     flushScheduled = false;
 
     if (pendingRoots.size === 0) {
-      applyTweaks(document);
+      applyTweaks(doc);
       return;
     }
 
@@ -148,42 +154,53 @@
     pendingRoots.clear();
   }
 
-  function scheduleTweaks(root = document) {
+  function scheduleTweaks(root = doc) {
     pendingRoots.add(root);
     if (flushScheduled) {
       return;
     }
 
     flushScheduled = true;
-    window.requestAnimationFrame(flushTweaks);
+    win.requestAnimationFrame(flushTweaks);
   }
 
   function start() {
     if (!isGitLabPage()) {
-      return;
+      return false;
     }
 
-    scheduleTweaks(document);
+    scheduleTweaks(doc);
 
-    const observer = new MutationObserver((mutations) => {
+    observer = new win.MutationObserver((mutations) => {
       for (const mutation of mutations) {
         for (const node of mutation.addedNodes) {
-          if (node instanceof HTMLElement) {
+          if (node instanceof win.HTMLElement) {
             scheduleTweaks(node);
           }
         }
       }
     });
 
-    observer.observe(document.documentElement, {
+    observer.observe(doc.documentElement, {
       childList: true,
       subtree: true
     });
+
+    return true;
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", start, { once: true });
-  } else {
-    start();
+  function stop() {
+    observer?.disconnect();
+    observer = null;
+    pendingRoots.clear();
+    flushScheduled = false;
   }
-})();
+
+  return {
+    start,
+    stop
+  };
+}
+
+
+createGitLabTweaks(window).start();

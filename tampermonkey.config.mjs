@@ -1,6 +1,6 @@
 const repository = {
   owner: "longbiaochen",
-  name: "tampermonkey"
+  name: "tampermonkey-scripts"
 };
 
 const scripts = [
@@ -18,6 +18,22 @@ const scripts = [
     match: ["https://x.com/*", "https://twitter.com/*"],
     runAt: "document-idle",
     grant: ["none"]
+  },
+  {
+    id: "gitlab-tweaks",
+    name: "GitLab Tweaks",
+    version: "1.8.1",
+    entry: "src/scripts/gitlab-tweaks/index.js",
+    output: "dist/gitlab-tweaks.user.js",
+    homepagePath: "#gitlab-tweaks",
+    description: "Quality-of-life tweaks for GitLab issue boards and project pages.",
+    namespace: "http://tampermonkey.net/",
+    author: "Longbiao CHEN",
+    license: "GPL-3.0-only",
+    match: ["*://*/*"],
+    runAt: "document-idle",
+    grant: ["none"],
+    run: "createGitLabTweaks(window).start();"
   }
 ];
 

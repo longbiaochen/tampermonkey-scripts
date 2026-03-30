@@ -37,6 +37,10 @@ function formatMetadataLines(script, version) {
     ["downloadURL", rawUrl]
   ];
 
+  if (script.license) {
+    lines.push(["license", script.license]);
+  }
+
   for (const match of script.match || []) {
     lines.push(["match", match]);
   }

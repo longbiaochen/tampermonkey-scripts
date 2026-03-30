@@ -4,10 +4,10 @@
 // @version      0.3.6
 // @description  Fold the left column to icons, toggle the right column from X's floating dock, and remove the "Live on X" chip on post detail pages.
 // @author       Longbiao CHEN
-// @homepageURL  https://github.com/longbiaochen/tampermonkey#x-tweaks
-// @supportURL   https://github.com/longbiaochen/tampermonkey/issues
-// @updateURL    https://raw.githubusercontent.com/longbiaochen/tampermonkey/main/dist/x-tweaks.user.js
-// @downloadURL  https://raw.githubusercontent.com/longbiaochen/tampermonkey/main/dist/x-tweaks.user.js
+// @homepageURL  https://github.com/longbiaochen/tampermonkey-scripts#x-tweaks
+// @supportURL   https://github.com/longbiaochen/tampermonkey-scripts/issues
+// @updateURL    https://raw.githubusercontent.com/longbiaochen/tampermonkey-scripts/main/dist/x-tweaks.user.js
+// @downloadURL  https://raw.githubusercontent.com/longbiaochen/tampermonkey-scripts/main/dist/x-tweaks.user.js
 // @match        https://x.com/*
 // @match        https://twitter.com/*
 // @run-at       document-idle
@@ -32,6 +32,8 @@ function createXTweaks(win, options = {}) {
   const FLOATING_DOCK_TEST_ATTR = "data-x-tweaks-floating-dock";
   const STYLE_ID = "x-tweaks-styles";
   const RIGHT_COLUMN_STORAGE_KEY = "x-tweaks:right-column-visible";
+  const WEIBO_ICON_URL = "https://weibo.com/favicon.ico";
+  const ICON_LINK_SELECTOR = "link[rel~='icon'], link[rel='apple-touch-icon']";
 
   let hiddenCount = 0;
   let observer = null;
@@ -197,6 +199,35 @@ function createXTweaks(win, options = {}) {
     `;
 
     doc.head.appendChild(style);
+  }
+
+  function ensureWeiboIconLink(rel) {
+    let link = doc.head.querySelector(`link[rel='${rel}']`);
+    if (!(link instanceof win.HTMLLinkElement)) {
+      link = doc.createElement("link");
+      link.rel = rel;
+      doc.head.appendChild(link);
+    }
+
+    if (link.href !== WEIBO_ICON_URL) {
+      link.href = WEIBO_ICON_URL;
+    }
+  }
+
+  function ensureWeiboIcons() {
+    if (!(doc.head instanceof win.HTMLHeadElement)) {
+      return;
+    }
+
+    const existingLinks = Array.from(doc.head.querySelectorAll(ICON_LINK_SELECTOR));
+    for (const link of existingLinks) {
+      if (link instanceof win.HTMLLinkElement && link.href !== WEIBO_ICON_URL) {
+        link.href = WEIBO_ICON_URL;
+      }
+    }
+
+    ensureWeiboIconLink("icon");
+    ensureWeiboIconLink("apple-touch-icon");
   }
 
   function findLayoutRoot(sidebar) {
@@ -532,6 +563,7 @@ function createXTweaks(win, options = {}) {
       return;
     }
 
+    ensureWeiboIcons();
     markLayoutRoots(node);
     hiddenCount += processLiveChip(node);
     ensureRightColumnToggleButton();
@@ -539,6 +571,7 @@ function createXTweaks(win, options = {}) {
 
   function start() {
     ensureStyles();
+    ensureWeiboIcons();
     markLayoutRoots(doc.body);
     doc.documentElement.setAttribute(LEFT_COLUMN_FOLDED_ATTR, "true");
     ensureRightColumnToggleButton();
