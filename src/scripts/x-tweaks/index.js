@@ -1,19 +1,3 @@
-// ==UserScript==
-// @name         X Tweaks
-// @namespace    http://tampermonkey.net/
-// @version      0.3.6
-// @description  Fold the left column to icons, toggle the right column from X's floating dock, and remove the "Live on X" chip on post detail pages.
-// @author       Longbiao CHEN
-// @homepageURL  https://github.com/longbiaochen/x-tweaks
-// @supportURL   https://github.com/longbiaochen/x-tweaks/issues
-// @updateURL    https://raw.githubusercontent.com/longbiaochen/x-tweaks/main/x-tweaks.user.js
-// @downloadURL  https://raw.githubusercontent.com/longbiaochen/x-tweaks/main/x-tweaks.user.js
-// @match        https://x.com/*
-// @match        https://twitter.com/*
-// @run-at       document-idle
-// @grant        none
-// ==/UserScript==
-
 function createXTweaks(win, options = {}) {
   const doc = win.document;
   const STATUS_PATH_RE = /^\/[^/]+\/status\/\d+/;
@@ -279,7 +263,7 @@ function createXTweaks(win, options = {}) {
     }
   }
 
-  function buttonSvg(name) {
+  function buttonSvg() {
     return `
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <rect x="4" y="5" width="16" height="14" rx="2"></rect>
@@ -299,8 +283,8 @@ function createXTweaks(win, options = {}) {
     const nextTitle = visible ? "Hide the right column" : "Show the right column";
     const nextLabel = visible ? "Hide right column" : "Show right column";
 
-    if (button.innerHTML !== buttonSvg("right")) {
-      button.innerHTML = buttonSvg("right");
+    if (button.innerHTML !== buttonSvg()) {
+      button.innerHTML = buttonSvg();
     }
 
     if (button.getAttribute("aria-pressed") !== nextPressed) {
@@ -316,16 +300,12 @@ function createXTweaks(win, options = {}) {
     }
   }
 
-  function updateToggleButton() {
-    updateRightColumnButton();
-  }
-
   function applyRightColumnVisible(visible, { persist } = { persist: true }) {
     if (persist) {
       win.localStorage.setItem(RIGHT_COLUMN_STORAGE_KEY, visible ? "true" : "false");
     }
     doc.documentElement.setAttribute(RIGHT_COLUMN_HIDDEN_ATTR, visible ? "false" : "true");
-    updateToggleButton();
+    updateRightColumnButton();
     updateState();
   }
 
@@ -461,7 +441,7 @@ function createXTweaks(win, options = {}) {
       host.insertBefore(mount, anchorItem.nextSibling);
     }
 
-    updateToggleButton();
+    updateRightColumnButton();
   }
 
   function shouldHideLiveChip(node) {
@@ -601,6 +581,4 @@ function runXTweaks(win) {
   return app;
 }
 
-
-
-runXTweaks(window);
+export { createXTweaks, runXTweaks };

@@ -1,46 +1,57 @@
-# X Tweaks
+# Tampermonkey Scripts
 
-Tampermonkey userscript for X/Twitter.
+Maintain multiple Tampermonkey userscripts in one repository.
 
-Current tweaks:
+## Included Scripts
+
+### `x-tweaks`
+
+Tweaks for X/Twitter:
 
 - Fold the left column to icons by default without hiding it.
 - Keep the right column visible by default and provide a sidebar toggle button in X's floating dock.
 - Hide the "Live on X" chip on post detail pages.
 
-## Install
-
-Import [`x-tweaks.user.js`](./x-tweaks.user.js) into Tampermonkey.
-
-Recommended install URL:
+Install URL:
 
 ```text
-https://raw.githubusercontent.com/longbiaochen/x-tweaks/main/x-tweaks.user.js
+https://raw.githubusercontent.com/longbiaochen/tampermonkey/main/dist/x-tweaks.user.js
 ```
+
+## Repository Layout
+
+```text
+src/scripts/<script-id>/index.js   Source for each userscript
+dist/<script-id>.user.js           Built Tampermonkey artifact committed to git
+test/<script-id>.test.mjs          Script-specific validation
+tampermonkey.config.mjs            Manifest for metadata, URLs, and build targets
+```
+
+## Add Another Script
+
+1. Add a new source entry under `src/scripts/<script-id>/index.js`.
+2. Add its metadata to `tampermonkey.config.mjs`.
+3. Add validation in `test/<script-id>.test.mjs` and wire it into `scripts/validate.mjs`.
+4. Run `npm run validate` so `dist/*.user.js` is regenerated before committing.
 
 ## Automatic Updates
 
-Closed-loop update path:
+Install scripts from the raw GitHub URLs in `dist/`, not from local files.
 
-1. Install the script from the raw GitHub URL above, not from a local file.
-2. Tampermonkey reads the embedded `@updateURL` and `@downloadURL` metadata.
-3. When `main` changes and `x-tweaks.user.js` is rebuilt and pushed, Tampermonkey checks that URL for a newer `@version`.
-4. If Tampermonkey's automatic update check and automatic installation settings are enabled, Chrome will pick up the new version without manual re-import.
+Tampermonkey uses the embedded `@updateURL`, `@downloadURL`, and `@version` metadata. When `main` changes and the matching `dist/*.user.js` file is rebuilt and pushed, Tampermonkey can pick up the new version automatically if update checks are enabled.
 
-This repo is already set up to use the raw GitHub URL as the canonical install and update source.
+Important: Tampermonkey only updates when `@version` increases. This repo currently uses `package.json` as the shared version source for the managed scripts.
 
-Important: Tampermonkey only updates when `@version` increases. This project uses `package.json` as the source of truth for the userscript version.
-
-To publish a new Tampermonkey-visible update:
+To publish a Tampermonkey-visible update:
 
 ```bash
 npm run release:patch
-git add package.json package-lock.json x-tweaks.user.js
-git commit -m "Release X Tweaks"
+git add package.json package-lock.json tampermonkey.config.mjs src test scripts dist
+git commit -m "Release Tampermonkey scripts"
 git push origin main
 ```
 
-To trigger the update in your real Chrome profile and verify that Tampermonkey picked it up:
+To trigger the current `x-tweaks` update in your Chrome profile and verify that Tampermonkey picked it up:
 
 ```bash
 npm run chrome:trigger-update
@@ -60,7 +71,7 @@ Install dependencies:
 npm install
 ```
 
-Build the userscript:
+Build all userscripts:
 
 ```bash
 npm run build
@@ -77,5 +88,3 @@ Open the local debug harness:
 ```bash
 open /Users/longbiao/Projects/tampermonkey/debug/index.html
 ```
-
-Source lives in `src/x-tweaks.js`. The generated Tampermonkey file is `x-tweaks.user.js`.

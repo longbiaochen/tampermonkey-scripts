@@ -1,4 +1,4 @@
-import { createXTweaks } from "../src/x-tweaks.js";
+import { createXTweaks } from "../src/scripts/x-tweaks/index.js";
 
 const fixture = document.getElementById("fixture");
 const statePanel = document.getElementById("state");

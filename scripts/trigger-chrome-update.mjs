@@ -3,11 +3,20 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 
+import { repository, scripts } from "../tampermonkey.config.mjs";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
 const packageJson = JSON.parse(await readFile(path.join(projectRoot, "package.json"), "utf8"));
 const expectedVersion = packageJson.version;
-const rawUrl = "https://raw.githubusercontent.com/longbiaochen/x-tweaks/main/x-tweaks.user.js";
+const targetScript = scripts.find((script) => script.id === "x-tweaks");
+
+if (!targetScript) {
+  console.error('Script "x-tweaks" is not configured.');
+  process.exit(1);
+}
+
+const rawUrl = `https://raw.githubusercontent.com/${repository.owner}/${repository.name}/main/${targetScript.output}`;
 
 function getInstalledVersion() {
   try {
