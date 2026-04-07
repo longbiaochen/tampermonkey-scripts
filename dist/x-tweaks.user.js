@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         X Tweaks
 // @namespace    http://tampermonkey.net/
-// @version      0.3.14
+// @version      0.3.15
 // @description  Fold the left column to icons with a toggle, hide the right column from X's floating dock by default, and remove the "Live on X" chip on post detail pages.
 // @author       Longbiao CHEN
 // @homepageURL  https://github.com/longbiaochen/tampermonkey-scripts#x-tweaks
@@ -548,6 +548,42 @@ function createXTweaks(win, options = {}) {
     return leftRect.top - rightRect.top || leftRect.left - rightRect.left;
   }
 
+  function getDockButtonChrome(referenceButton) {
+    const inner = referenceButton.parentElement;
+    const outer = inner?.parentElement;
+    const buttonRect = referenceButton.getBoundingClientRect();
+    const outerRect = outer instanceof win.HTMLElement ? outer.getBoundingClientRect() : null;
+
+    if (
+      outer instanceof win.HTMLElement &&
+      outerRect &&
+      outerRect.width >= buttonRect.width &&
+      outerRect.height >= buttonRect.height &&
+      outerRect.width - buttonRect.width <= 8 &&
+      outerRect.height - buttonRect.height <= 8
+    ) {
+      return { outer, inner: inner instanceof win.HTMLElement ? inner : null };
+    }
+
+    return { outer: inner instanceof win.HTMLElement ? inner : referenceButton, inner: null };
+  }
+
+  function extractBoxStyles(element) {
+    if (!(element instanceof win.HTMLElement)) {
+      return null;
+    }
+
+    const cs = win.getComputedStyle(element);
+    return {
+      borderRadius: cs.borderRadius,
+      boxShadow: cs.boxShadow,
+      backgroundColor: cs.backgroundColor,
+      border: cs.border,
+      backdropFilter: cs.backdropFilter || cs.webkitBackdropFilter || "",
+      color: cs.color
+    };
+  }
+
   function findFloatingDockAnchor() {
     const explicitHost = doc.querySelector(`[${FLOATING_DOCK_TEST_ATTR}="true"]`);
     if (explicitHost instanceof win.HTMLElement) {
@@ -557,8 +593,11 @@ function createXTweaks(win, options = {}) {
       const visibleExplicitButtons = explicitButtons.filter(isVisibleDockButton).sort(sortDockButtonsByVisualOrder);
       const referenceButton = visibleExplicitButtons[0] || explicitButtons[0] || null;
       if (referenceButton instanceof win.HTMLElement) {
+        const chrome = getDockButtonChrome(referenceButton);
         return {
           referenceButton,
+          referenceOuter: chrome.outer,
+          referenceInner: chrome.inner,
           dockButtons: visibleExplicitButtons.length ? visibleExplicitButtons : explicitButtons
         };
       }
@@ -577,12 +616,24 @@ function createXTweaks(win, options = {}) {
     if (candidates.length >= 2) {
       const host = findCommonAncestor(candidates[0], candidates[1]);
       if (host instanceof win.HTMLElement) {
-        return { referenceButton, dockButtons: candidates };
+        const chrome = getDockButtonChrome(referenceButton);
+        return {
+          referenceButton,
+          referenceOuter: chrome.outer,
+          referenceInner: chrome.inner,
+          dockButtons: candidates
+        };
       }
     }
 
     if (referenceButton instanceof win.HTMLElement) {
-      return { referenceButton, dockButtons: [referenceButton] };
+      const chrome = getDockButtonChrome(referenceButton);
+      return {
+        referenceButton,
+        referenceOuter: chrome.outer,
+        referenceInner: chrome.inner,
+        dockButtons: [referenceButton]
+      };
     }
 
     return null;
@@ -596,6 +647,41 @@ function createXTweaks(win, options = {}) {
     mount.style.display = "inline-flex";
     mount.style.alignItems = "center";
     mount.style.justifyContent = "center";
+    mount.style.pointerEvents = "auto";
+
+    const { outer: referenceOuter, inner: referenceInner } = getDockButtonChrome(referenceButton);
+    const outerBox = extractBoxStyles(referenceOuter);
+    const innerBox = extractBoxStyles(referenceInner);
+
+    if (referenceOuter instanceof win.HTMLElement && referenceOuter !== referenceButton) {
+      mount.className =
+        typeof referenceOuter.className === "string" ? referenceOuter.className : "";
+    }
+    if (outerBox) {
+      mount.style.borderRadius = outerBox.borderRadius;
+      mount.style.boxShadow = outerBox.boxShadow;
+      mount.style.backgroundColor = outerBox.backgroundColor;
+      mount.style.border = outerBox.border;
+      if (outerBox.backdropFilter) {
+        mount.style.backdropFilter = outerBox.backdropFilter;
+      }
+      if (outerBox.color) {
+        mount.style.color = outerBox.color;
+      }
+    }
+
+    const inner = doc.createElement("div");
+    if (referenceInner instanceof win.HTMLElement && typeof referenceInner.className === "string") {
+      inner.className = referenceInner.className;
+    }
+    inner.style.width = "100%";
+    inner.style.height = "100%";
+    inner.style.display = "flex";
+    inner.style.alignItems = "stretch";
+    inner.style.justifyContent = "stretch";
+    if (innerBox?.borderRadius) {
+      inner.style.borderRadius = innerBox.borderRadius;
+    }
 
     const button = doc.createElement("button");
     button.id = RIGHT_TOGGLE_BUTTON_ID;
@@ -609,7 +695,8 @@ function createXTweaks(win, options = {}) {
       setRightColumnVisible(!readStoredRightColumnVisibility());
     });
 
-    mount.appendChild(button);
+    inner.appendChild(button);
+    mount.appendChild(inner);
     return mount;
   }
 
@@ -641,7 +728,10 @@ function createXTweaks(win, options = {}) {
       return;
     }
 
-    const referenceRect = anchor.referenceButton.getBoundingClientRect();
+    const referenceRect =
+      anchor.referenceOuter instanceof win.HTMLElement
+        ? anchor.referenceOuter.getBoundingClientRect()
+        : anchor.referenceButton.getBoundingClientRect();
     if (!referenceRect.width || !referenceRect.height) {
       return;
     }
@@ -652,8 +742,8 @@ function createXTweaks(win, options = {}) {
 
     let gap = DEFAULT_DOCK_GAP;
     if (dockButtons.length >= 2) {
-      const firstRect = dockButtons[0].getBoundingClientRect();
-      const secondRect = dockButtons[1].getBoundingClientRect();
+      const firstRect = getDockButtonChrome(dockButtons[0]).outer.getBoundingClientRect();
+      const secondRect = getDockButtonChrome(dockButtons[1]).outer.getBoundingClientRect();
       const measuredGap = secondRect.top - firstRect.bottom;
       if (Number.isFinite(measuredGap) && measuredGap >= 0 && measuredGap <= 32) {
         gap = measuredGap;

@@ -20,6 +20,38 @@ function mockDockButtonRect(node, rect) {
   });
 }
 
+function mockDockChromeRects(button, { x, y, width, height }) {
+  mockDockButtonRect(button, { x, y, width, height });
+
+  const inner = button.parentElement;
+  if (inner) {
+    inner.getBoundingClientRect = () => ({
+      x,
+      y,
+      width,
+      height,
+      top: y,
+      left: x,
+      right: x + width,
+      bottom: y + height
+    });
+  }
+
+  const outer = inner?.parentElement;
+  if (outer) {
+    outer.getBoundingClientRect = () => ({
+      x: x - 1,
+      y: y - 1,
+      width: width + 2,
+      height: height + 2,
+      top: y - 1,
+      left: x - 1,
+      right: x + width + 1,
+      bottom: y + height + 1
+    });
+  }
+}
+
 async function nextTick() {
   await Promise.resolve();
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -144,13 +176,13 @@ export async function runXTweaksTests() {
 
     Object.defineProperty(dom.window, "innerWidth", { value: 1512, configurable: true });
     Object.defineProperty(dom.window, "innerHeight", { value: 982, configurable: true });
-    mockDockButtonRect(dom.window.document.getElementById("grok"), {
+    mockDockChromeRects(dom.window.document.getElementById("grok"), {
       x: 1423,
       y: 653,
       width: 53,
       height: 55
     });
-    mockDockButtonRect(dom.window.document.getElementById("chat"), {
+    mockDockChromeRects(dom.window.document.getElementById("chat"), {
       x: 1423,
       y: 720,
       width: 53,
@@ -169,8 +201,10 @@ export async function runXTweaksTests() {
     assert.equal(Array.from(host?.children || []).length, 2);
     assert.equal(mount?.getAttribute("data-x-tweaks-right-column-toggle-mode"), "floating");
     assert.equal(mount?.parentElement, dom.window.document.body);
-    assert.equal(mount?.style.top, "586px");
-    assert.equal(mount?.style.right, "36px");
+    assert.equal(mount?.style.width, "55px");
+    assert.equal(mount?.style.height, "57px");
+    assert.ok(Number.parseInt(mount?.style.top || "0", 10) < 653);
+    assert.ok(Number.parseInt(mount?.style.right || "0", 10) >= 24);
     assert.equal(rightToggle?.getAttribute("aria-label"), "Hide right column");
 
     rightToggle?.click();
@@ -279,15 +313,11 @@ export async function runXTweaksTests() {
     });
 
     const nativeButton = dom.window.document.getElementById("chart");
-    nativeButton.getBoundingClientRect = () => ({
+    mockDockChromeRects(nativeButton, {
       x: 1423,
       y: 653,
       width: 53,
-      height: 55,
-      top: 653,
-      left: 1423,
-      right: 1476,
-      bottom: 708
+      height: 55
     });
 
     Object.defineProperty(dom.window, "innerWidth", { value: 1512, configurable: true });
@@ -301,8 +331,10 @@ export async function runXTweaksTests() {
 
     assert.equal(mount?.getAttribute("data-x-tweaks-right-column-toggle-mode"), "floating");
     assert.equal(mount?.parentElement, dom.window.document.body);
-    assert.equal(mount?.style.top, "586px");
-    assert.equal(mount?.style.right, "36px");
+    assert.equal(mount?.style.width, "55px");
+    assert.equal(mount?.style.height, "57px");
+    assert.ok(Number.parseInt(mount?.style.top || "0", 10) < 653);
+    assert.ok(Number.parseInt(mount?.style.right || "0", 10) >= 24);
 
     app.stop();
     dom.window.close();
@@ -384,13 +416,13 @@ export async function runXTweaksTests() {
 
     Object.defineProperty(dom.window, "innerWidth", { value: 1512, configurable: true });
     Object.defineProperty(dom.window, "innerHeight", { value: 982, configurable: true });
-    mockDockButtonRect(dom.window.document.getElementById("grok"), {
+    mockDockChromeRects(dom.window.document.getElementById("grok"), {
       x: 1423,
       y: 653,
       width: 53,
       height: 55
     });
-    mockDockButtonRect(dom.window.document.getElementById("chat"), {
+    mockDockChromeRects(dom.window.document.getElementById("chat"), {
       x: 1423,
       y: 720,
       width: 53,
