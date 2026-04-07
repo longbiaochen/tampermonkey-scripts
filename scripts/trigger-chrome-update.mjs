@@ -1,56 +1,126 @@
-import { readFile } from "node:fs/promises";
+import { execFileSync, spawn } from "node:child_process";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { execFileSync } from "node:child_process";
 
-import { repository, scripts } from "../tampermonkey.config.mjs";
+import {
+  getChromeProfileDir,
+  getPackageVersion,
+  getRawUrl,
+  getTargetScript,
+  parseArgs,
+  projectRoot
+} from "./tampermonkey-utils.mjs";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const projectRoot = path.resolve(__dirname, "..");
-const packageJson = JSON.parse(await readFile(path.join(projectRoot, "package.json"), "utf8"));
-const expectedVersion = packageJson.version;
-const targetScript = scripts.find((script) => script.id === "x-tweaks");
+const chromeBinary =
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 
-if (!targetScript) {
-  console.error('Script "x-tweaks" is not configured.');
-  process.exit(1);
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-const rawUrl = `https://raw.githubusercontent.com/${repository.owner}/${repository.name}/main/${targetScript.output}`;
-
-function getInstalledVersion() {
+function getInstalledVersion(profile, scriptId) {
   try {
-    return execFileSync("node", [path.join(projectRoot, "scripts/check-installed-version.mjs")], {
-      encoding: "utf8"
-    }).trim();
+    return execFileSync(
+      "node",
+      [
+        path.join(projectRoot, "scripts/check-installed-version.mjs"),
+        "--profile",
+        profile,
+        "--script",
+        scriptId
+      ],
+      {
+        encoding: "utf8"
+      }
+    ).trim();
   } catch {
     return null;
   }
 }
 
-const beforeVersion = getInstalledVersion();
-console.log(`Installed before trigger: ${beforeVersion || "not found"}`);
+async function waitForRemoteVersion(rawUrl, expectedVersion, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  const versionLine = `// @version      ${expectedVersion}`;
+
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(rawUrl, {
+        headers: {
+          "cache-control": "no-cache"
+        }
+      });
+      if (response.ok) {
+        const body = await response.text();
+        if (body.includes(versionLine)) {
+          return true;
+        }
+      }
+    } catch {}
+
+    await sleep(2000);
+  }
+
+  return false;
+}
+
+function openRawUrlInChromeProfile(rawUrl, profile) {
+  const chromeRoot = path.dirname(getChromeProfileDir(profile));
+  const child = spawn(
+    chromeBinary,
+    [
+      `--user-data-dir=${chromeRoot}`,
+      `--profile-directory=${profile}`,
+      "--no-first-run",
+      "--no-default-browser-check",
+      rawUrl
+    ],
+    {
+      detached: true,
+      stdio: "ignore"
+    }
+  );
+  child.unref();
+}
+
+const args = parseArgs(process.argv.slice(2));
+const profile = String(args.profile || "Default");
+const scriptId = String(args.script || "x-tweaks");
+const targetScript = getTargetScript(scriptId);
+const rawUrl = getRawUrl(targetScript);
+const expectedVersion = String(args["wait-version"] || (await getPackageVersion()));
+const remoteTimeoutMs = Number(args["remote-timeout-ms"] || 120000);
+const installTimeoutMs = Number(args["install-timeout-ms"] || 30000);
+
+const beforeVersion = getInstalledVersion(profile, scriptId);
+console.log(`Installed before trigger (${profile}): ${beforeVersion || "not found"}`);
 console.log(`Expected target version: ${expectedVersion}`);
+console.log(`Raw URL: ${rawUrl}`);
 
-execFileSync("open", ["-a", "/Applications/Google Chrome.app", rawUrl], {
-  stdio: ["ignore", "ignore", "ignore"]
-});
+const remoteReady = await waitForRemoteVersion(rawUrl, expectedVersion, remoteTimeoutMs);
+if (!remoteReady) {
+  console.error(
+    `Timed out waiting for remote userscript to expose version ${expectedVersion} at ${rawUrl}.`
+  );
+  process.exit(1);
+}
 
-const deadline = Date.now() + 30000;
+openRawUrlInChromeProfile(rawUrl, profile);
+
+const deadline = Date.now() + installTimeoutMs;
 let installedVersion = beforeVersion;
 
 while (Date.now() < deadline) {
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  installedVersion = getInstalledVersion();
+  await sleep(1000);
+  installedVersion = getInstalledVersion(profile, scriptId);
   if (installedVersion === expectedVersion) {
-    console.log(`Installed after trigger: ${installedVersion}`);
+    console.log(`Installed after trigger (${profile}): ${installedVersion}`);
     process.exit(0);
   }
 }
 
+openRawUrlInChromeProfile(rawUrl, profile);
 console.error(
-  `Timed out waiting for Tampermonkey to install ${expectedVersion}. Current installed version: ${
+  `Timed out waiting for Tampermonkey to install ${expectedVersion} in profile "${profile}". Current installed version: ${
     installedVersion || "not found"
-  }`
+  }. Complete the install manually in the opened Chrome tab.`
 );
 process.exit(1);

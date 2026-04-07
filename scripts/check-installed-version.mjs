@@ -1,37 +1,35 @@
-import { existsSync } from "node:fs";
-import { readdirSync } from "node:fs";
-import path from "node:path";
-import os from "node:os";
 import { execFileSync } from "node:child_process";
 
-import { scripts } from "../tampermonkey.config.mjs";
+import {
+  getTargetScript,
+  getTampermonkeyStorageDir,
+  listTampermonkeyStorageFiles,
+  parseArgs
+} from "./tampermonkey-utils.mjs";
 
-const targetScript = scripts.find((script) => script.id === "x-tweaks");
-if (!targetScript) {
-  console.error('Script "x-tweaks" is not configured.');
+const args = parseArgs(process.argv.slice(2));
+const profile = String(args.profile || "Default");
+const scriptId = String(args.script || "x-tweaks");
+
+let targetScript;
+try {
+  targetScript = getTargetScript(scriptId);
+} catch (error) {
+  console.error(error.message);
   process.exit(1);
 }
 
-const storageDir = path.join(
-  os.homedir(),
-  "Library/Application Support/Google/Chrome/Default/Local Extension Settings/dhdgffkkebhmkfjojejmpbldmpobfkfo"
-);
-
-if (!existsSync(storageDir)) {
-  console.error("Tampermonkey Chrome profile storage not found.");
+const storageFiles = listTampermonkeyStorageFiles(profile);
+if (storageFiles.length === 0) {
+  console.error(
+    `Tampermonkey storage not found for Chrome profile "${profile}" at ${getTampermonkeyStorageDir(
+      profile
+    )}.`
+  );
   process.exit(1);
 }
 
-const files = readdirSync(storageDir)
-  .filter((name) => /\.(log|ldb)$/.test(name))
-  .map((name) => path.join(storageDir, name));
-
-if (files.length === 0) {
-  console.error("No Tampermonkey storage files found.");
-  process.exit(1);
-}
-
-const stringsOutput = execFileSync("strings", files, {
+const stringsOutput = execFileSync("strings", storageFiles, {
   encoding: "utf8",
   maxBuffer: 20 * 1024 * 1024
 });
@@ -45,9 +43,8 @@ while (match) {
 }
 
 if (versions.length === 0) {
-  console.error(`${targetScript.name} is not currently installed in this Chrome profile.`);
+  console.error(`${targetScript.name} is not currently installed in Chrome profile "${profile}".`);
   process.exit(2);
 }
 
-const latest = versions.at(-1);
-console.log(latest);
+console.log(versions.at(-1));

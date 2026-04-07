@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         X Tweaks
 // @namespace    http://tampermonkey.net/
-// @version      0.3.6
-// @description  Fold the left column to icons, toggle the right column from X's floating dock, and remove the "Live on X" chip on post detail pages.
+// @version      0.3.7
+// @description  Fold the left column to icons with a toggle, hide the right column from X's floating dock by default, and remove the "Live on X" chip on post detail pages.
 // @author       Longbiao CHEN
 // @homepageURL  https://github.com/longbiaochen/tampermonkey-scripts#x-tweaks
 // @supportURL   https://github.com/longbiaochen/tampermonkey-scripts/issues
@@ -27,10 +27,13 @@ function createXTweaks(win, options = {}) {
   const LEFT_COLUMN_FOLDED_ATTR = "data-x-tweaks-left-column-folded";
   const RIGHT_COLUMN_HIDDEN_ATTR = "data-x-tweaks-right-column-hidden";
   const LAYOUT_ROOT_ATTR = "data-x-tweaks-layout-root";
+  const LEFT_TOGGLE_BUTTON_ID = "x-tweaks-left-column-toggle";
+  const LEFT_TOGGLE_HOST_ATTR = "data-x-tweaks-left-column-toggle-host";
   const RIGHT_TOGGLE_BUTTON_ID = "x-tweaks-right-column-toggle";
   const RIGHT_TOGGLE_HOST_ATTR = "data-x-tweaks-right-column-toggle-host";
   const FLOATING_DOCK_TEST_ATTR = "data-x-tweaks-floating-dock";
   const STYLE_ID = "x-tweaks-styles";
+  const LEFT_COLUMN_STORAGE_KEY = "x-tweaks:left-column-folded";
   const RIGHT_COLUMN_STORAGE_KEY = "x-tweaks:right-column-visible";
   const WEIBO_ICON_URL = "https://weibo.com/favicon.ico";
   const ICON_LINK_SELECTOR = "link[rel~='icon'], link[rel='apple-touch-icon']";
@@ -62,14 +65,18 @@ function createXTweaks(win, options = {}) {
   }
 
   function readStoredRightColumnVisibility() {
-    return readStoredBool(RIGHT_COLUMN_STORAGE_KEY, true);
+    return readStoredBool(RIGHT_COLUMN_STORAGE_KEY, false);
+  }
+
+  function readStoredLeftColumnFolded() {
+    return readStoredBool(LEFT_COLUMN_STORAGE_KEY, true);
   }
 
   function updateState() {
     win.__xTweaksState = {
       active: true,
       hiddenCount,
-      leftColumnFolded: true,
+      leftColumnFolded: readStoredLeftColumnFolded(),
       rightColumnVisible: readStoredRightColumnVisibility(),
       leftColumnCount: doc.querySelectorAll(LEFT_COLUMN_SELECTOR).length,
       rightColumnCount: doc.querySelectorAll(RIGHT_COLUMN_SELECTOR).length
@@ -89,10 +96,17 @@ function createXTweaks(win, options = {}) {
       }
 
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} {
+        position: relative !important;
         width: 76px !important;
         min-width: 76px !important;
         max-width: 76px !important;
         align-items: center !important;
+        overflow: visible !important;
+      }
+
+      html[${LEFT_COLUMN_FOLDED_ATTR}="false"] ${LEFT_COLUMN_SELECTOR} {
+        position: relative !important;
+        overflow: visible !important;
       }
 
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} nav,
@@ -107,16 +121,35 @@ function createXTweaks(win, options = {}) {
         justify-content: center !important;
       }
 
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} nav a,
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} nav button,
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} [data-testid="SideNav_AccountSwitcher_Button"],
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} [data-testid="SideNav_NewTweet_Button"] {
+        width: 52px !important;
+        min-width: 52px !important;
+        max-width: 52px !important;
+      }
+
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} nav a span:not([aria-hidden="true"]),
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} nav button span:not([aria-hidden="true"]),
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} header a span:not([aria-hidden="true"]),
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} header button span:not([aria-hidden="true"]),
-      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} [data-testid="SideNav_AccountSwitcher_Button"] span:not([aria-hidden="true"]) {
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} [data-testid="SideNav_AccountSwitcher_Button"] span:not([aria-hidden="true"]),
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} [dir="auto"],
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} [data-testid="AppTabBar_Home_Link"] span:last-child,
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} [data-testid="AppTabBar_Explore_Link"] span:last-child,
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} [data-testid="AppTabBar_Notifications_Link"] span:last-child,
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} [data-testid="AppTabBar_Messages_Link"] span:last-child,
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} [data-testid="AppTabBar_Profile_Link"] span:last-child,
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} [data-testid="SideNav_NewTweet_Button"] span:not([aria-hidden="true"]) {
         max-width: 0 !important;
         opacity: 0 !important;
         overflow: hidden !important;
         margin: 0 !important;
         padding: 0 !important;
+        width: 0 !important;
+        min-width: 0 !important;
+        pointer-events: none !important;
       }
 
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} [data-testid="SideNav_NewTweet_Button"] {
@@ -193,6 +226,49 @@ function createXTweaks(win, options = {}) {
         fill: none;
         stroke: currentColor;
         stroke-width: 1.75;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      [${LEFT_TOGGLE_HOST_ATTR}="true"] {
+        position: absolute;
+        top: 88px;
+        right: -14px;
+        z-index: 20;
+      }
+
+      #${LEFT_TOGGLE_BUTTON_ID} {
+        appearance: none;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(15, 20, 25, 0.92);
+        color: rgb(231, 233, 234);
+        width: 28px;
+        height: 28px;
+        border-radius: 9999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+        padding: 0;
+      }
+
+      #${LEFT_TOGGLE_BUTTON_ID}:hover {
+        background: rgba(29, 155, 240, 0.92);
+        border-color: rgba(29, 155, 240, 0.92);
+      }
+
+      #${LEFT_TOGGLE_BUTTON_ID}:focus-visible {
+        outline: 2px solid #1d9bf0;
+        outline-offset: 2px;
+      }
+
+      #${LEFT_TOGGLE_BUTTON_ID} svg {
+        width: 16px;
+        height: 16px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
         stroke-linecap: round;
         stroke-linejoin: round;
       }
@@ -319,6 +395,45 @@ function createXTweaks(win, options = {}) {
     `;
   }
 
+  function leftButtonSvg() {
+    const folded = readStoredLeftColumnFolded();
+    const direction = folded ? "M9 6l6 6-6 6" : "M15 6l-6 6 6 6";
+    return `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="${direction}"></path>
+      </svg>
+    `;
+  }
+
+  function updateLeftColumnButton() {
+    const button = doc.getElementById(LEFT_TOGGLE_BUTTON_ID);
+    if (!(button instanceof win.HTMLButtonElement)) {
+      return;
+    }
+
+    const folded = readStoredLeftColumnFolded();
+    const nextPressed = folded ? "true" : "false";
+    const nextTitle = folded ? "Expand the left column" : "Collapse the left column";
+    const nextLabel = folded ? "Expand left column" : "Collapse left column";
+    const nextSvg = leftButtonSvg();
+
+    if (button.innerHTML !== nextSvg) {
+      button.innerHTML = nextSvg;
+    }
+
+    if (button.getAttribute("aria-pressed") !== nextPressed) {
+      button.setAttribute("aria-pressed", nextPressed);
+    }
+
+    if (button.getAttribute("aria-label") !== nextLabel) {
+      button.setAttribute("aria-label", nextLabel);
+    }
+
+    if (button.title !== nextTitle) {
+      button.title = nextTitle;
+    }
+  }
+
   function updateRightColumnButton() {
     const button = doc.getElementById(RIGHT_TOGGLE_BUTTON_ID);
     if (!(button instanceof win.HTMLButtonElement)) {
@@ -358,6 +473,19 @@ function createXTweaks(win, options = {}) {
 
   function setRightColumnVisible(visible) {
     applyRightColumnVisible(visible, { persist: true });
+  }
+
+  function applyLeftColumnFolded(folded, { persist } = { persist: true }) {
+    if (persist) {
+      win.localStorage.setItem(LEFT_COLUMN_STORAGE_KEY, folded ? "true" : "false");
+    }
+    doc.documentElement.setAttribute(LEFT_COLUMN_FOLDED_ATTR, folded ? "true" : "false");
+    updateLeftColumnButton();
+    updateState();
+  }
+
+  function setLeftColumnFolded(folded) {
+    applyLeftColumnFolded(folded, { persist: true });
   }
 
   function isVisibleDockButton(node) {
@@ -491,6 +619,45 @@ function createXTweaks(win, options = {}) {
     updateRightColumnButton();
   }
 
+  function createLeftToggleMount(leftColumn) {
+    const mount = doc.createElement("div");
+    mount.setAttribute(LEFT_TOGGLE_HOST_ATTR, "true");
+
+    const button = doc.createElement("button");
+    button.id = LEFT_TOGGLE_BUTTON_ID;
+    button.type = "button";
+    button.addEventListener("click", () => {
+      setLeftColumnFolded(!readStoredLeftColumnFolded());
+    });
+
+    mount.appendChild(button);
+    leftColumn.appendChild(mount);
+    return mount;
+  }
+
+  function ensureLeftColumnToggleButton() {
+    const leftColumns = Array.from(doc.querySelectorAll(LEFT_COLUMN_SELECTOR));
+    for (const leftColumn of leftColumns) {
+      if (!(leftColumn instanceof win.HTMLElement)) {
+        continue;
+      }
+
+      let mount = leftColumn.querySelector(`[${LEFT_TOGGLE_HOST_ATTR}="true"]`);
+      if (!(mount instanceof win.HTMLElement)) {
+        mount = createLeftToggleMount(leftColumn);
+      } else if (mount.parentElement !== leftColumn) {
+        leftColumn.appendChild(mount);
+      }
+    }
+
+    updateLeftColumnButton();
+  }
+
+  function applyStoredLayoutState({ persist = false } = {}) {
+    applyLeftColumnFolded(readStoredLeftColumnFolded(), { persist });
+    applyRightColumnVisible(readStoredRightColumnVisibility(), { persist });
+  }
+
   function shouldHideLiveChip(node) {
     const hasNestedExactMatch = Array.from(node.children).some(
       (child) => child instanceof win.HTMLElement && normalizeText(child.textContent) === TARGET_TEXT
@@ -566,16 +733,18 @@ function createXTweaks(win, options = {}) {
     ensureWeiboIcons();
     markLayoutRoots(node);
     hiddenCount += processLiveChip(node);
+    ensureLeftColumnToggleButton();
     ensureRightColumnToggleButton();
+    applyStoredLayoutState({ persist: false });
   }
 
   function start() {
     ensureStyles();
     ensureWeiboIcons();
     markLayoutRoots(doc.body);
-    doc.documentElement.setAttribute(LEFT_COLUMN_FOLDED_ATTR, "true");
+    ensureLeftColumnToggleButton();
     ensureRightColumnToggleButton();
-    applyRightColumnVisible(readStoredRightColumnVisibility(), { persist: false });
+    applyStoredLayoutState({ persist: false });
     hiddenCount += processLiveChip(doc.body);
     updateState();
 
@@ -586,7 +755,9 @@ function createXTweaks(win, options = {}) {
         }
       }
 
+      ensureLeftColumnToggleButton();
       ensureRightColumnToggleButton();
+      applyStoredLayoutState({ persist: false });
       updateState();
     });
 
@@ -603,16 +774,19 @@ function createXTweaks(win, options = {}) {
   return {
     start,
     stop,
+    setLeftColumnFolded,
     setRightColumnVisible,
-    isLeftColumnFolded: () => true,
+    isLeftColumnFolded: readStoredLeftColumnFolded,
     isRightColumnVisible: readStoredRightColumnVisibility,
     selectors: {
       LEFT_COLUMN_SELECTOR,
       RIGHT_COLUMN_SELECTOR,
       PRIMARY_COLUMN_SELECTOR,
+      LEFT_TOGGLE_BUTTON_ID,
       RIGHT_TOGGLE_BUTTON_ID
     },
     storageKeys: {
+      leftColumnFolded: LEFT_COLUMN_STORAGE_KEY,
       rightColumnVisible: RIGHT_COLUMN_STORAGE_KEY
     }
   };

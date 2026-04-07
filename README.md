@@ -8,8 +8,8 @@ Maintain multiple Tampermonkey userscripts in the `tampermonkey-scripts` reposit
 
 Tweaks for X/Twitter:
 
-- Fold the left column to icons by default without hiding it.
-- Keep the right column visible by default and provide a sidebar toggle button in X's floating dock.
+- Fold the left column to icons by default, keep a left-edge toggle, and remember the user's choice.
+- Hide the right column by default and provide a sidebar toggle button in X's floating dock.
 - Hide the "Live on X" chip on post detail pages.
 
 Install URL:
@@ -56,26 +56,41 @@ Tampermonkey uses the embedded `@updateURL`, `@downloadURL`, and `@version` meta
 
 Important: Tampermonkey only updates when `@version` increases. This repo currently uses `package.json` as the shared version source for the managed scripts.
 
-To publish a Tampermonkey-visible update:
+To publish `x-tweaks`, push to GitHub, and trigger a Tampermonkey update in the real Chrome `Default` profile:
+
+```bash
+npm run release:x-tweaks
+```
+
+This command will:
+
+1. bump the patch version in `package.json`
+2. run `npm run validate`
+3. create a release commit
+4. push `main`
+5. wait for the GitHub raw userscript to expose the new `@version`
+6. open the raw userscript in Chrome `Default` so Tampermonkey can install it
+7. verify the installed version from Tampermonkey storage
+
+If you only want to prepare a Tampermonkey-visible update without pushing:
 
 ```bash
 npm run release:patch
-git add package.json package-lock.json tampermonkey.config.mjs src test scripts dist
-git commit -m "Release Tampermonkey scripts"
-git push origin main
 ```
 
-To trigger the current `x-tweaks` update in your Chrome profile and verify that Tampermonkey picked it up:
+To trigger the current `x-tweaks` update in a specific Chrome profile and verify that Tampermonkey picked it up:
 
 ```bash
-npm run chrome:trigger-update
+node scripts/trigger-chrome-update.mjs --profile Default --wait-version 0.3.6
 ```
 
-To inspect the currently installed `X Tweaks` version in your Chrome profile:
+To inspect the currently installed `X Tweaks` version in a specific Chrome profile:
 
 ```bash
-npm run chrome:check-installed
+node scripts/check-installed-version.mjs --profile Default
 ```
+
+The `npm run chrome:check-installed` shortcut still defaults to `Default`.
 
 ## Development
 

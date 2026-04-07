@@ -1,6 +1,6 @@
 {
   "name": "tampermonkey-scripts",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,6 +8,7 @@
     "test": "node scripts/validate.mjs",
     "validate": "npm run build && npm test",
     "release:patch": "npm version patch --no-git-tag-version && npm run validate",
+    "release:x-tweaks": "node scripts/release-x-tweaks.mjs --profile Default",
     "chrome:check-installed": "node scripts/check-installed-version.mjs",
     "chrome:trigger-update": "node scripts/trigger-chrome-update.mjs"
   },
