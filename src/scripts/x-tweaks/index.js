@@ -537,6 +537,40 @@ function createXTweaks(win, options = {}) {
     return leftRect.top - rightRect.top || leftRect.left - rightRect.left;
   }
 
+  function resolveDockAnchorStructure(referenceButton, defaultHost, defaultAnchorItem) {
+    const innerWrapper = referenceButton.parentElement;
+    const outerWrapper = innerWrapper?.parentElement;
+
+    if (
+      innerWrapper instanceof win.HTMLElement &&
+      outerWrapper instanceof win.HTMLElement &&
+      outerWrapper.parentElement instanceof win.HTMLElement &&
+      outerWrapper.getBoundingClientRect().height > innerWrapper.getBoundingClientRect().height + 20
+    ) {
+      return {
+        host: outerWrapper.parentElement,
+        anchorItem: outerWrapper,
+        structure: {
+          nested: true,
+          outerClassName: outerWrapper.className || "",
+          outerStyle: outerWrapper.getAttribute("style") || "",
+          innerClassName: innerWrapper.className || "",
+          innerStyle: innerWrapper.getAttribute("style") || ""
+        }
+      };
+    }
+
+    return {
+      host: defaultHost,
+      anchorItem: defaultAnchorItem,
+      structure: {
+        nested: false,
+        outerClassName: innerWrapper instanceof win.HTMLElement ? innerWrapper.className || "" : "",
+        outerStyle: innerWrapper instanceof win.HTMLElement ? innerWrapper.getAttribute("style") || "" : ""
+      }
+    };
+  }
+
   function findFloatingDockAnchor() {
     const explicitHost = doc.querySelector(`[${FLOATING_DOCK_TEST_ATTR}="true"]`);
     if (explicitHost instanceof win.HTMLElement) {
@@ -550,7 +584,8 @@ function createXTweaks(win, options = {}) {
           ? getDockItem(explicitHost, referenceButton) || referenceButton.parentElement
           : explicitHost.lastElementChild;
       if (anchorItem instanceof win.HTMLElement && referenceButton instanceof win.HTMLElement) {
-        return { host: explicitHost, anchorItem, referenceButton };
+        const structure = resolveDockAnchorStructure(referenceButton, explicitHost, anchorItem);
+        return { host: structure.host, anchorItem: structure.anchorItem, referenceButton, structure: structure.structure };
       }
       return null;
     }
@@ -569,7 +604,8 @@ function createXTweaks(win, options = {}) {
       if (host instanceof win.HTMLElement) {
         const anchorItem = getDockItem(host, referenceButton);
         if (anchorItem instanceof win.HTMLElement) {
-          return { host, anchorItem, referenceButton };
+          const structure = resolveDockAnchorStructure(referenceButton, host, anchorItem);
+          return { host: structure.host, anchorItem: structure.anchorItem, referenceButton, structure: structure.structure };
         }
       }
     }
@@ -577,13 +613,14 @@ function createXTweaks(win, options = {}) {
     const anchorItem = referenceButton.parentElement;
     const host = anchorItem?.parentElement;
     if (anchorItem instanceof win.HTMLElement && host instanceof win.HTMLElement) {
-      return { host, anchorItem, referenceButton };
+      const structure = resolveDockAnchorStructure(referenceButton, host, anchorItem);
+      return { host: structure.host, anchorItem: structure.anchorItem, referenceButton, structure: structure.structure };
     }
 
     return null;
   }
 
-  function createRightToggleMount(referenceButton) {
+  function createRightToggleMount(referenceButton, structure = {}) {
     const mount = doc.createElement("div");
     mount.setAttribute(RIGHT_TOGGLE_HOST_ATTR, "true");
     mount.setAttribute(RIGHT_TOGGLE_MODE_ATTR, "embedded");
@@ -600,13 +637,26 @@ function createXTweaks(win, options = {}) {
       setRightColumnVisible(!readStoredRightColumnVisibility());
     });
 
-    mount.className = referenceButton.parentElement?.className || "";
-    if (referenceButton.parentElement?.getAttribute("style")) {
-      mount.setAttribute("style", referenceButton.parentElement.getAttribute("style"));
+    mount.className = structure.outerClassName || referenceButton.parentElement?.className || "";
+    if (structure.outerStyle || referenceButton.parentElement?.getAttribute("style")) {
+      mount.setAttribute("style", structure.outerStyle || referenceButton.parentElement.getAttribute("style"));
+    } else {
+      mount.removeAttribute("style");
     }
-    mount.style.marginBottom = "8px";
 
-    mount.appendChild(button);
+    if (structure.nested) {
+      const inner = doc.createElement("div");
+      inner.className = structure.innerClassName || "";
+      if (structure.innerStyle) {
+        inner.setAttribute("style", structure.innerStyle);
+      }
+      inner.appendChild(button);
+      mount.appendChild(inner);
+    } else {
+      mount.style.marginBottom = "8px";
+      mount.appendChild(button);
+    }
+
     return mount;
   }
 
@@ -637,10 +687,10 @@ function createXTweaks(win, options = {}) {
     if (anchor?.host instanceof win.HTMLElement) {
       if (!(mount instanceof win.HTMLElement) || mount.getAttribute(RIGHT_TOGGLE_MODE_ATTR) !== "embedded") {
         mount?.remove();
-        mount = createRightToggleMount(anchor.referenceButton);
+        mount = createRightToggleMount(anchor.referenceButton, anchor.structure);
       }
 
-      if (anchor.host.firstElementChild !== mount || mount.nextElementSibling !== anchor.anchorItem) {
+      if (mount.parentElement !== anchor.host || mount.nextElementSibling !== anchor.anchorItem) {
         anchor.host.insertBefore(mount, anchor.anchorItem);
       }
 
