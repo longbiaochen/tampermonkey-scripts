@@ -52,7 +52,7 @@ function createXTweaks(win, options = {}) {
   }
 
   function readStoredRightColumnVisibility() {
-    return readStoredBool(RIGHT_COLUMN_STORAGE_KEY, false);
+    return readStoredBool(RIGHT_COLUMN_STORAGE_KEY, true);
   }
 
   function readStoredLeftColumnFolded() {
@@ -228,11 +228,11 @@ function createXTweaks(win, options = {}) {
       }
 
       #${RIGHT_TOGGLE_BUTTON_ID} svg {
-        width: 1.25rem;
-        height: 1.25rem;
+        width: 1.5rem;
+        height: 1.5rem;
         fill: none;
         stroke: currentColor;
-        stroke-width: 1.75;
+        stroke-width: 2.1;
         stroke-linecap: round;
         stroke-linejoin: round;
       }
@@ -416,9 +416,12 @@ function createXTweaks(win, options = {}) {
 
   function buttonSvg() {
     return `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4.75 5.5h14.5a1.75 1.75 0 0 1 1.75 1.75v9.5a1.75 1.75 0 0 1-1.75 1.75H4.75A1.75 1.75 0 0 1 3 16.75v-9.5A1.75 1.75 0 0 1 4.75 5.5Z"></path>
-        <path d="M9.5 5.5v13"></path>
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M6.5 8.5h19a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-19a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2Z"></path>
+        <path d="M12 8.5v15"></path>
+        <path d="M8.75 13h1.5"></path>
+        <path d="M8.75 17h1.5"></path>
+        <path d="M8.75 21h1.5"></path>
       </svg>
     `;
   }
@@ -601,6 +604,7 @@ function createXTweaks(win, options = {}) {
     if (referenceButton.parentElement?.getAttribute("style")) {
       mount.setAttribute("style", referenceButton.parentElement.getAttribute("style"));
     }
+    mount.style.marginBottom = "8px";
 
     mount.appendChild(button);
     return mount;
