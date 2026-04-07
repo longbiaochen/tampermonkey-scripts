@@ -229,11 +229,11 @@ function createXTweaks(win, options = {}) {
       }
 
       #${RIGHT_TOGGLE_BUTTON_ID} svg {
-        width: 1.5rem;
-        height: 1.5rem;
+        width: 1.85rem;
+        height: 1.85rem;
         fill: none;
         stroke: currentColor;
-        stroke-width: 2.1;
+        stroke-width: 2.35;
         stroke-linecap: round;
         stroke-linejoin: round;
       }
@@ -412,11 +412,9 @@ function createXTweaks(win, options = {}) {
   function buttonSvg() {
     return `
       <svg viewBox="0 0 32 32" aria-hidden="true">
-        <path d="M6.5 8.5h19a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-19a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2Z"></path>
-        <path d="M12 8.5v15"></path>
-        <path d="M8.75 13h1.5"></path>
-        <path d="M8.75 17h1.5"></path>
-        <path d="M8.75 21h1.5"></path>
+        <path d="M7.5 8.5h17a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-17a3 3 0 0 1-3-3v-9a3 3 0 0 1 3-3Z"></path>
+        <path d="M19.5 8.5v15"></path>
+        <path d="m12 12 3 4-3 4"></path>
       </svg>
     `;
   }
@@ -637,10 +635,6 @@ function createXTweaks(win, options = {}) {
     const outerBox = extractBoxStyles(referenceOuter);
     const innerBox = extractBoxStyles(referenceInner);
 
-    if (referenceOuter instanceof win.HTMLElement && referenceOuter !== referenceButton) {
-      mount.className =
-        typeof referenceOuter.className === "string" ? referenceOuter.className : "";
-    }
     if (outerBox) {
       mount.style.borderRadius = outerBox.borderRadius;
       mount.style.boxShadow = outerBox.boxShadow;
@@ -735,10 +729,15 @@ function createXTweaks(win, options = {}) {
     }
 
     const nextTop = Math.max(DOCK_MARGIN, referenceRect.top - referenceRect.height - gap);
-    const nextRight = Math.max(DOCK_MARGIN, win.innerWidth - referenceRect.right);
+    const referenceCenterX = referenceRect.left + referenceRect.width / 2;
+    const nextLeft = Math.max(
+      DOCK_MARGIN,
+      Math.min(win.innerWidth - DOCK_MARGIN - referenceRect.width, referenceCenterX - referenceRect.width / 2)
+    );
 
     mount.style.top = `${Math.round(nextTop)}px`;
-    mount.style.right = `${Math.round(nextRight)}px`;
+    mount.style.left = `${Math.round(nextLeft)}px`;
+    mount.style.right = "auto";
     mount.style.width = `${Math.round(referenceRect.width)}px`;
     mount.style.height = `${Math.round(referenceRect.height)}px`;
   }

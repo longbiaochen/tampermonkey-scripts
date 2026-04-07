@@ -204,7 +204,7 @@ export async function runXTweaksTests() {
     assert.equal(mount?.style.width, "55px");
     assert.equal(mount?.style.height, "57px");
     assert.ok(Number.parseInt(mount?.style.top || "0", 10) < 653);
-    assert.ok(Number.parseInt(mount?.style.right || "0", 10) >= 24);
+    assert.equal(mount?.style.left, "1422px");
     assert.equal(rightToggle?.getAttribute("aria-label"), "Hide right column");
 
     rightToggle?.click();
@@ -334,7 +334,7 @@ export async function runXTweaksTests() {
     assert.equal(mount?.style.width, "55px");
     assert.equal(mount?.style.height, "57px");
     assert.ok(Number.parseInt(mount?.style.top || "0", 10) < 653);
-    assert.ok(Number.parseInt(mount?.style.right || "0", 10) >= 24);
+    assert.equal(mount?.style.left, "1422px");
 
     app.stop();
     dom.window.close();
