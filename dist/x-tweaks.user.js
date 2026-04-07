@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         X Tweaks
 // @namespace    http://tampermonkey.net/
-// @version      0.3.17
+// @version      0.3.18
 // @description  Fold the left column to icons with a toggle, hide the right column from X's floating dock by default, and remove the "Live on X" chip on post detail pages.
 // @author       Longbiao CHEN
 // @homepageURL  https://github.com/longbiaochen/tampermonkey-scripts#x-tweaks
@@ -17,9 +17,11 @@
 function createXTweaks(win, options = {}) {
   const doc = win.document;
   const STATUS_PATH_RE = /^\/[^/]+\/status\/\d+/;
+  const BOOKMARKS_PATH_RE = /^\/i\/bookmarks\/?$/;
   const TARGET_TEXT = "live on x";
   const PROCESSED_ATTR = "data-x-tweaks-live-on-x-processed";
   const HIDDEN_ATTR = "data-x-tweaks-live-on-x-hidden";
+  const BOOKMARKS_EMPTY_STATE_PROCESSED_ATTR = "data-x-tweaks-bookmarks-empty-state-processed";
   const LEFT_COLUMN_SELECTOR = "[data-x-tweaks-left-column='true']";
   const RIGHT_COLUMN_SELECTOR = "[data-testid='sidebarColumn']";
   const PRIMARY_COLUMN_SELECTOR = "[data-testid='primaryColumn']";
@@ -58,6 +60,10 @@ function createXTweaks(win, options = {}) {
 
   function isStatusPage() {
     return STATUS_PATH_RE.test(getPathname());
+  }
+
+  function isBookmarksPage() {
+    return BOOKMARKS_PATH_RE.test(getPathname());
   }
 
   function getPathname() {
@@ -892,6 +898,33 @@ function createXTweaks(win, options = {}) {
     return nextHidden;
   }
 
+  function processBookmarksEmptyState(root) {
+    if (!isBookmarksPage() || !(root instanceof win.HTMLElement)) {
+      return 0;
+    }
+
+    const candidates = root.matches('[data-testid="emptyState"]')
+      ? [root]
+      : Array.from(root.querySelectorAll('[data-testid="emptyState"]'));
+
+    let nextHidden = 0;
+    for (const candidate of candidates) {
+      if (
+        !(candidate instanceof win.HTMLElement) ||
+        candidate.getAttribute(BOOKMARKS_EMPTY_STATE_PROCESSED_ATTR) === "true"
+      ) {
+        continue;
+      }
+
+      candidate.setAttribute(BOOKMARKS_EMPTY_STATE_PROCESSED_ATTR, "true");
+      if (hideElement(candidate)) {
+        nextHidden += 1;
+      }
+    }
+
+    return nextHidden;
+  }
+
   function handleNode(node) {
     if (!(node instanceof win.HTMLElement)) {
       return;
@@ -900,6 +933,7 @@ function createXTweaks(win, options = {}) {
     ensureWeiboIcons();
     markLayoutRoots(node);
     hiddenCount += processLiveChip(node);
+    hiddenCount += processBookmarksEmptyState(node);
     ensureRightColumnToggleButton();
     applyLeftColumnFolded(readStoredLeftColumnFolded(), { persist: false });
     syncRightColumnToRoute();
@@ -914,6 +948,7 @@ function createXTweaks(win, options = {}) {
     lastRoutePathname = getPathname();
     syncRightColumnToRoute(lastRoutePathname);
     hiddenCount += processLiveChip(doc.body);
+    hiddenCount += processBookmarksEmptyState(doc.body);
     updateState();
 
     observer = new win.MutationObserver((mutations) => {

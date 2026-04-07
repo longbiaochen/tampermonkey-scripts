@@ -484,6 +484,48 @@ export async function runXTweaksTests() {
     dom.window.close();
   });
 
+  await runCase("hide bookmarks empty state on bookmarks page", async () => {
+    const dom = createDom({
+      pathname: "/i/bookmarks",
+      body: `
+        <div id="empty" data-testid="emptyState">
+          <div>Bookmark posts to save them for later</div>
+        </div>
+      `
+    });
+
+    const app = createXTweaks(dom.window);
+    app.start();
+
+    const emptyState = dom.window.document.getElementById("empty");
+    assert.equal(emptyState?.style.display, "none");
+    assert.equal(dom.window.__xTweaksState.hiddenCount, 1);
+
+    app.stop();
+    dom.window.close();
+  });
+
+  await runCase("leave bookmarks empty state alone off bookmarks page", async () => {
+    const dom = createDom({
+      pathname: "/home",
+      body: `
+        <div id="empty" data-testid="emptyState">
+          <div>Bookmark posts to save them for later</div>
+        </div>
+      `
+    });
+
+    const app = createXTweaks(dom.window);
+    app.start();
+
+    const emptyState = dom.window.document.getElementById("empty");
+    assert.notEqual(emptyState?.style.display, "none");
+    assert.equal(dom.window.__xTweaksState.hiddenCount, 0);
+
+    app.stop();
+    dom.window.close();
+  });
+
   await runCase("handle dynamic sidebar and live-chip mutations", async () => {
     const dom = createDom({
       pathname: "/person/status/456",
