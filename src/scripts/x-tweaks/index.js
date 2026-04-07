@@ -807,7 +807,9 @@ function createXTweaks(win, options = {}) {
       homeLink instanceof win.HTMLElement ? homeLink.getBoundingClientRect() : columnRect;
     const size = 28;
     const left = Math.round(columnRect.right + 8);
-    const top = Math.round(Math.max(16, referenceRect.top + (referenceRect.height - size) / 2));
+    const top = Math.round(
+      Math.max(columnRect.top + 68, referenceRect.top + (referenceRect.height - size) / 2)
+    );
 
     mount.style.position = "fixed";
     mount.style.width = `${size}px`;

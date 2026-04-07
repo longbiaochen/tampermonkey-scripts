@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         X Tweaks
 // @namespace    http://tampermonkey.net/
-// @version      0.3.9
+// @version      0.3.10
 // @description  Fold the left column to icons with a toggle, hide the right column from X's floating dock by default, and remove the "Live on X" chip on post detail pages.
 // @author       Longbiao CHEN
 // @homepageURL  https://github.com/longbiaochen/tampermonkey-scripts#x-tweaks
@@ -823,7 +823,9 @@ function createXTweaks(win, options = {}) {
       homeLink instanceof win.HTMLElement ? homeLink.getBoundingClientRect() : columnRect;
     const size = 28;
     const left = Math.round(columnRect.right + 8);
-    const top = Math.round(Math.max(16, referenceRect.top + (referenceRect.height - size) / 2));
+    const top = Math.round(
+      Math.max(columnRect.top + 68, referenceRect.top + (referenceRect.height - size) / 2)
+    );
 
     mount.style.position = "fixed";
     mount.style.width = `${size}px`;
