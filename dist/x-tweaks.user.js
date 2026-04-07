@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         X Tweaks
 // @namespace    http://tampermonkey.net/
-// @version      0.3.7
+// @version      0.3.8
 // @description  Fold the left column to icons with a toggle, hide the right column from X's floating dock by default, and remove the "Live on X" chip on post detail pages.
 // @author       Longbiao CHEN
 // @homepageURL  https://github.com/longbiaochen/tampermonkey-scripts#x-tweaks
@@ -31,6 +31,7 @@ function createXTweaks(win, options = {}) {
   const LEFT_TOGGLE_HOST_ATTR = "data-x-tweaks-left-column-toggle-host";
   const RIGHT_TOGGLE_BUTTON_ID = "x-tweaks-right-column-toggle";
   const RIGHT_TOGGLE_HOST_ATTR = "data-x-tweaks-right-column-toggle-host";
+  const RIGHT_TOGGLE_MODE_ATTR = "data-x-tweaks-right-column-toggle-mode";
   const FLOATING_DOCK_TEST_ATTR = "data-x-tweaks-floating-dock";
   const STYLE_ID = "x-tweaks-styles";
   const LEFT_COLUMN_STORAGE_KEY = "x-tweaks:left-column-folded";
@@ -102,6 +103,7 @@ function createXTweaks(win, options = {}) {
         max-width: 76px !important;
         align-items: center !important;
         overflow: visible !important;
+        flex: 0 0 76px !important;
       }
 
       html[${LEFT_COLUMN_FOLDED_ATTR}="false"] ${LEFT_COLUMN_SELECTOR} {
@@ -112,8 +114,13 @@ function createXTweaks(win, options = {}) {
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} nav,
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} [role="navigation"],
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} > div,
-      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} > header {
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} > header,
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} > div > div,
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} > div > div > div {
         align-items: center !important;
+        width: 76px !important;
+        min-width: 76px !important;
+        max-width: 76px !important;
       }
 
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} a,
@@ -161,39 +168,53 @@ function createXTweaks(win, options = {}) {
       }
 
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] {
-        grid-template-columns: minmax(76px, 76px) minmax(0, 1fr) minmax(320px, 350px) !important;
+        display: flex !important;
+      }
+
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] > main {
+        width: calc(100% - 76px) !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        flex: 1 1 auto !important;
       }
 
       html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] {
-        justify-content: center !important;
-        grid-template-columns: minmax(0, 1fr) !important;
+        justify-content: flex-start !important;
       }
 
-      html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] > ${PRIMARY_COLUMN_SELECTOR} {
-        width: min(100%, clamp(720px, 88vw, 980px));
-        max-width: min(100%, 980px);
+      html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] > main {
+        width: calc(100% - 76px) !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        flex: 1 1 auto !important;
+      }
+
+      html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] ${PRIMARY_COLUMN_SELECTOR} {
+        width: min(100%, clamp(720px, 84vw, 980px)) !important;
+        max-width: min(100%, 980px) !important;
         min-width: 0;
+        margin-inline: auto !important;
       }
 
-      html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] > ${PRIMARY_COLUMN_SELECTOR} > * {
+      html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] ${PRIMARY_COLUMN_SELECTOR} > * {
         width: 100%;
         max-width: 100%;
       }
 
-      html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] > ${PRIMARY_COLUMN_SELECTOR} section,
-      html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] > ${PRIMARY_COLUMN_SELECTOR} article,
-      html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] > ${PRIMARY_COLUMN_SELECTOR} [data-testid="cellInnerDiv"],
-      html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] > ${PRIMARY_COLUMN_SELECTOR} [data-testid="tweet"],
-      html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] > ${PRIMARY_COLUMN_SELECTOR} [data-testid="primaryColumn"] > * {
+      html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] ${PRIMARY_COLUMN_SELECTOR} section,
+      html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] ${PRIMARY_COLUMN_SELECTOR} article,
+      html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] ${PRIMARY_COLUMN_SELECTOR} [data-testid="cellInnerDiv"],
+      html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] ${PRIMARY_COLUMN_SELECTOR} [data-testid="tweet"],
+      html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] ${PRIMARY_COLUMN_SELECTOR} [data-testid="primaryColumn"] > * {
         max-width: 100% !important;
       }
 
-      html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] > ${PRIMARY_COLUMN_SELECTOR} [style*="max-width"] {
+      html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] ${PRIMARY_COLUMN_SELECTOR} [style*="max-width"] {
         max-width: 100% !important;
       }
 
       @media (max-width: 1280px) {
-        html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] > ${PRIMARY_COLUMN_SELECTOR} {
+        html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] ${PRIMARY_COLUMN_SELECTOR} {
           width: min(100%, 92vw);
           max-width: 92vw;
         }
@@ -228,6 +249,33 @@ function createXTweaks(win, options = {}) {
         stroke-width: 1.75;
         stroke-linecap: round;
         stroke-linejoin: round;
+      }
+
+      [${RIGHT_TOGGLE_HOST_ATTR}="true"][${RIGHT_TOGGLE_MODE_ATTR}="fallback"] {
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        z-index: 40;
+        width: 56px;
+        height: 56px;
+        border-radius: 9999px;
+        background: rgba(15, 20, 25, 0.94);
+        color: rgb(231, 233, 234);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      [${RIGHT_TOGGLE_HOST_ATTR}="true"][${RIGHT_TOGGLE_MODE_ATTR}="embedded"] {
+        position: static;
+      }
+
+      [${RIGHT_TOGGLE_HOST_ATTR}="true"][${RIGHT_TOGGLE_MODE_ATTR}="fallback"] #${RIGHT_TOGGLE_BUTTON_ID} {
+        width: 100%;
+        height: 100%;
+        color: inherit;
       }
 
       [${LEFT_TOGGLE_HOST_ATTR}="true"] {
@@ -325,6 +373,18 @@ function createXTweaks(win, options = {}) {
     return current?.parentElement === root ? current : null;
   }
 
+  function isLeftColumnCandidate(node) {
+    return (
+      node instanceof win.HTMLElement &&
+      (node.matches("header") ||
+        Boolean(
+          node.querySelector(
+            "a[href='/home'], [data-testid='AppTabBar_Home_Link'], a[href='/compose/post']"
+          )
+        ))
+    );
+  }
+
   function findLeftColumn(layoutRoot) {
     if (!(layoutRoot instanceof win.HTMLElement)) {
       return null;
@@ -335,16 +395,43 @@ function createXTweaks(win, options = {}) {
       return null;
     }
 
-    let primaryChild = getDirectChild(layoutRoot, primary);
-    while (primaryChild?.previousElementSibling) {
-      const candidate = primaryChild.previousElementSibling;
-      if (
-        candidate.querySelector("nav, [role='navigation'], header") ||
-        candidate.querySelector("a[href='/home'], a[href='/explore'], a[href='/notifications']")
-      ) {
-        return candidate;
+    const primaryChild = getDirectChild(layoutRoot, primary);
+    if (!(primaryChild instanceof win.HTMLElement)) {
+      return null;
+    }
+
+    const children = Array.from(layoutRoot.children);
+    const directLeftChild = children.find(
+      (candidate) => candidate !== primaryChild && isLeftColumnCandidate(candidate)
+    );
+    if (directLeftChild instanceof win.HTMLElement) {
+      return directLeftChild;
+    }
+
+    let current = primaryChild.previousElementSibling;
+    while (current) {
+      if (isLeftColumnCandidate(current)) {
+        return current;
       }
-      primaryChild = candidate;
+      current = current.previousElementSibling;
+    }
+
+    return children.find(isLeftColumnCandidate) || null;
+  }
+
+  function findLayoutRootFromPrimary(primary) {
+    let current = primary?.parentElement;
+    while (current && current instanceof win.HTMLElement && current !== doc.body) {
+      const primaryChild = getDirectChild(current, primary);
+      if (
+        primaryChild instanceof win.HTMLElement &&
+        Array.from(current.children).some(
+          (candidate) => candidate !== primaryChild && isLeftColumnCandidate(candidate)
+        )
+      ) {
+        return current;
+      }
+      current = current.parentElement;
     }
 
     return null;
@@ -355,12 +442,12 @@ function createXTweaks(win, options = {}) {
       return;
     }
 
-    const sidebars = root.matches(RIGHT_COLUMN_SELECTOR)
+    const primaries = root.matches(PRIMARY_COLUMN_SELECTOR)
       ? [root]
-      : Array.from(root.querySelectorAll(RIGHT_COLUMN_SELECTOR));
+      : Array.from(root.querySelectorAll(PRIMARY_COLUMN_SELECTOR));
 
-    for (const sidebar of sidebars) {
-      const layoutRoot = findLayoutRoot(sidebar);
+    for (const primary of primaries) {
+      const layoutRoot = findLayoutRootFromPrimary(primary);
       if (layoutRoot instanceof win.HTMLElement) {
         layoutRoot.setAttribute(LAYOUT_ROOT_ATTR, "true");
         const leftColumn = findLeftColumn(layoutRoot);
@@ -368,20 +455,20 @@ function createXTweaks(win, options = {}) {
       }
     }
 
-    const primaries = root.matches(PRIMARY_COLUMN_SELECTOR)
+    const sidebars = root.matches(RIGHT_COLUMN_SELECTOR)
       ? [root]
-      : Array.from(root.querySelectorAll(PRIMARY_COLUMN_SELECTOR));
+      : Array.from(root.querySelectorAll(RIGHT_COLUMN_SELECTOR));
 
-    for (const primary of primaries) {
-      let current = primary.parentElement;
-      while (current && current instanceof win.HTMLElement && current !== doc.body) {
-        const leftColumn = findLeftColumn(current);
-        if (leftColumn instanceof win.HTMLElement) {
-          current.setAttribute(LAYOUT_ROOT_ATTR, "true");
-          leftColumn.setAttribute(LEFT_COLUMN_ATTR, "true");
-          break;
-        }
-        current = current.parentElement;
+    for (const sidebar of sidebars) {
+      const layoutRoot = findLayoutRoot(sidebar);
+      if (!(layoutRoot instanceof win.HTMLElement)) {
+        continue;
+      }
+
+      const leftColumn = findLeftColumn(layoutRoot);
+      if (leftColumn instanceof win.HTMLElement) {
+        layoutRoot.setAttribute(LAYOUT_ROOT_ATTR, "true");
+        leftColumn.setAttribute(LEFT_COLUMN_ATTR, "true");
       }
     }
   }
@@ -564,6 +651,7 @@ function createXTweaks(win, options = {}) {
   function createRightToggleMount(referenceButton) {
     const mount = doc.createElement("div");
     mount.setAttribute(RIGHT_TOGGLE_HOST_ATTR, "true");
+    mount.setAttribute(RIGHT_TOGGLE_MODE_ATTR, "embedded");
 
     const button = doc.createElement("button");
     button.id = RIGHT_TOGGLE_BUTTON_ID;
@@ -586,34 +674,59 @@ function createXTweaks(win, options = {}) {
     return mount;
   }
 
+  function createFallbackRightToggleMount() {
+    const mount = doc.createElement("div");
+    mount.setAttribute(RIGHT_TOGGLE_HOST_ATTR, "true");
+    mount.setAttribute(RIGHT_TOGGLE_MODE_ATTR, "fallback");
+
+    const button = doc.createElement("button");
+    button.id = RIGHT_TOGGLE_BUTTON_ID;
+    button.type = "button";
+    button.addEventListener("click", () => {
+      setRightColumnVisible(!readStoredRightColumnVisibility());
+    });
+
+    mount.appendChild(button);
+    return mount;
+  }
+
   function ensureRightColumnToggleButton() {
     const host = findFloatingDockHost();
-    if (!(host instanceof win.HTMLElement)) {
-      return;
-    }
-
-    const nativeButtons = Array.from(host.querySelectorAll("button, a[href], [role='button']")).filter(
-      (node) => node instanceof win.HTMLElement && node.id !== RIGHT_TOGGLE_BUTTON_ID
-    );
-
-    if (nativeButtons.length < 2) {
-      return;
-    }
-
-    const secondNativeButton = nativeButtons[1];
-    const anchorItem = getDockItem(host, secondNativeButton);
-    if (!(anchorItem instanceof win.HTMLElement)) {
-      return;
-    }
-
     const existingButton = doc.getElementById(RIGHT_TOGGLE_BUTTON_ID);
     let mount = existingButton?.closest(`[${RIGHT_TOGGLE_HOST_ATTR}="true"]`);
-    if (!(mount instanceof win.HTMLElement)) {
-      mount = createRightToggleMount(secondNativeButton);
+
+    if (host instanceof win.HTMLElement) {
+      const nativeButtons = Array.from(host.querySelectorAll("button, a[href], [role='button']")).filter(
+        (node) => node instanceof win.HTMLElement && node.id !== RIGHT_TOGGLE_BUTTON_ID
+      );
+
+      if (nativeButtons.length >= 2) {
+        const secondNativeButton = nativeButtons[1];
+        const anchorItem = getDockItem(host, secondNativeButton);
+
+        if (anchorItem instanceof win.HTMLElement) {
+          if (!(mount instanceof win.HTMLElement) || mount.getAttribute(RIGHT_TOGGLE_MODE_ATTR) !== "embedded") {
+            mount?.remove();
+            mount = createRightToggleMount(secondNativeButton);
+          }
+
+          if (anchorItem.nextSibling !== mount) {
+            host.insertBefore(mount, anchorItem.nextSibling);
+          }
+
+          updateRightColumnButton();
+          return;
+        }
+      }
     }
 
-    if (anchorItem.nextSibling !== mount) {
-      host.insertBefore(mount, anchorItem.nextSibling);
+    if (!(mount instanceof win.HTMLElement) || mount.getAttribute(RIGHT_TOGGLE_MODE_ATTR) !== "fallback") {
+      mount?.remove();
+      mount = createFallbackRightToggleMount();
+    }
+
+    if (mount.parentElement !== doc.body) {
+      doc.body.appendChild(mount);
     }
 
     updateRightColumnButton();

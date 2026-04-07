@@ -31,13 +31,21 @@ export async function runXTweaksTests() {
       body: `
         <div id="app-shell">
           <div id="layout">
-            <aside id="left-column">
-              <nav>
-                <a href="/home"><span>Home</span></a>
-              </nav>
-            </aside>
-            <main data-testid="primaryColumn">Primary</main>
-            <aside data-testid="sidebarColumn">Sidebar</aside>
+            <header id="left-column">
+              <div>
+                <div>
+                  <div>
+                    <nav>
+                      <a href="/home"><span>Home</span></a>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+            </header>
+            <main>
+              <div data-testid="primaryColumn">Primary</div>
+              <aside data-testid="sidebarColumn">Sidebar</aside>
+            </main>
           </div>
           <div id="dock" data-x-tweaks-floating-dock="true">
             <div class="dock-item"><button id="grok" class="native-button" type="button">G</button></div>
@@ -176,6 +184,46 @@ export async function runXTweaksTests() {
     assert.equal(dom.window.localStorage.getItem("x-tweaks:left-column-folded"), "false");
     assert.equal(leftToggle?.getAttribute("aria-label"), "Collapse left column");
     assert.equal(app.isLeftColumnFolded(), false);
+
+    app.stop();
+    dom.window.close();
+  });
+
+  await runCase("inject fallback right-column toggle when floating dock is absent", async () => {
+    const dom = createDom({
+      body: `
+        <div id="layout">
+          <header id="left-column">
+            <nav>
+              <a href="/home"><span>Home</span></a>
+            </nav>
+          </header>
+          <main>
+            <div data-testid="primaryColumn">Primary</div>
+            <aside data-testid="sidebarColumn">Sidebar</aside>
+          </main>
+        </div>
+      `
+    });
+
+    const app = createXTweaks(dom.window);
+    app.start();
+
+    const mount = dom.window.document.querySelector(
+      '[data-x-tweaks-right-column-toggle-host="true"]'
+    );
+    const rightToggle = dom.window.document.getElementById("x-tweaks-right-column-toggle");
+
+    assert.equal(mount?.getAttribute("data-x-tweaks-right-column-toggle-mode"), "fallback");
+    assert.equal(rightToggle?.getAttribute("aria-label"), "Show right column");
+
+    rightToggle?.click();
+
+    assert.equal(
+      dom.window.document.documentElement.getAttribute("data-x-tweaks-right-column-hidden"),
+      "false"
+    );
+    assert.equal(dom.window.localStorage.getItem("x-tweaks:right-column-visible"), "true");
 
     app.stop();
     dom.window.close();
