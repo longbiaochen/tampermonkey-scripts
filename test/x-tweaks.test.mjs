@@ -10,6 +10,16 @@ function createDom({ pathname = "/", body = "" } = {}) {
   });
 }
 
+function mockDockButtonRect(node, rect) {
+  node.getBoundingClientRect = () => ({
+    ...rect,
+    top: rect.y,
+    left: rect.x,
+    right: rect.x + rect.width,
+    bottom: rect.y + rect.height
+  });
+}
+
 async function nextTick() {
   await Promise.resolve();
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -132,18 +142,35 @@ export async function runXTweaksTests() {
       `
     });
 
+    Object.defineProperty(dom.window, "innerWidth", { value: 1512, configurable: true });
+    Object.defineProperty(dom.window, "innerHeight", { value: 982, configurable: true });
+    mockDockButtonRect(dom.window.document.getElementById("grok"), {
+      x: 1423,
+      y: 653,
+      width: 53,
+      height: 55
+    });
+    mockDockButtonRect(dom.window.document.getElementById("chat"), {
+      x: 1423,
+      y: 720,
+      width: 53,
+      height: 55
+    });
+
     const app = createXTweaks(dom.window);
     app.start();
 
     const host = dom.window.document.getElementById("dock");
+    const mount = dom.window.document.querySelector(
+      '[data-x-tweaks-right-column-toggle-host="true"]'
+    );
     const rightToggle = dom.window.document.getElementById("x-tweaks-right-column-toggle");
-    const directChildren = Array.from(host?.children || []);
 
-    assert.equal(directChildren.length, 3);
-    assert.equal(directChildren[0]?.getAttribute("data-x-tweaks-right-column-toggle-host"), "true");
-    assert.equal(directChildren[0]?.style.marginBottom, "8px");
-    assert.equal(directChildren[1]?.querySelector("#grok")?.id, "grok");
-    assert.equal(directChildren[2]?.querySelector("#chat")?.id, "chat");
+    assert.equal(Array.from(host?.children || []).length, 2);
+    assert.equal(mount?.getAttribute("data-x-tweaks-right-column-toggle-mode"), "floating");
+    assert.equal(mount?.parentElement, dom.window.document.body);
+    assert.equal(mount?.style.top, "586px");
+    assert.equal(mount?.style.right, "36px");
     assert.equal(rightToggle?.getAttribute("aria-label"), "Hide right column");
 
     rightToggle?.click();
@@ -229,7 +256,7 @@ export async function runXTweaksTests() {
     dom.window.close();
   });
 
-  await runCase("embed right-column toggle when only one native dock item is present", async () => {
+  await runCase("float right-column toggle above a single native dock item", async () => {
     const dom = createDom({
       body: `
         <div id="layout">
@@ -271,11 +298,11 @@ export async function runXTweaksTests() {
 
     const rightToggle = dom.window.document.getElementById("x-tweaks-right-column-toggle");
     const mount = rightToggle?.closest('[data-x-tweaks-right-column-toggle-host="true"]');
-    const wrapper = dom.window.document.querySelector(".dock-wrapper");
 
-    assert.equal(mount?.getAttribute("data-x-tweaks-right-column-toggle-mode"), "embedded");
-    assert.equal(mount?.parentElement, wrapper);
-    assert.equal(mount?.nextElementSibling?.className, "dock-item");
+    assert.equal(mount?.getAttribute("data-x-tweaks-right-column-toggle-mode"), "floating");
+    assert.equal(mount?.parentElement, dom.window.document.body);
+    assert.equal(mount?.style.top, "586px");
+    assert.equal(mount?.style.right, "36px");
 
     app.stop();
     dom.window.close();
@@ -355,6 +382,21 @@ export async function runXTweaksTests() {
       `
     );
 
+    Object.defineProperty(dom.window, "innerWidth", { value: 1512, configurable: true });
+    Object.defineProperty(dom.window, "innerHeight", { value: 982, configurable: true });
+    mockDockButtonRect(dom.window.document.getElementById("grok"), {
+      x: 1423,
+      y: 653,
+      width: 53,
+      height: 55
+    });
+    mockDockButtonRect(dom.window.document.getElementById("chat"), {
+      x: 1423,
+      y: 720,
+      width: 53,
+      height: 55
+    });
+
     await nextTick();
 
     assert.equal(
@@ -371,7 +413,7 @@ export async function runXTweaksTests() {
       "true"
     );
     assert.equal(dom.window.document.querySelectorAll("#x-tweaks-right-column-toggle").length, 1);
-    assert.equal(dom.window.document.getElementById("dock")?.children.length, 3);
+    assert.equal(dom.window.document.getElementById("dock")?.children.length, 2);
     assert.equal(dom.window.document.getElementById("x-tweaks-left-column-toggle"), null);
     assert.equal(dom.window.document.getElementById("dynamic-chip")?.style.display, "none");
 

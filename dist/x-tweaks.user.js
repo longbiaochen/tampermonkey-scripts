@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         X Tweaks
 // @namespace    http://tampermonkey.net/
-// @version      0.3.13
+// @version      0.3.14
 // @description  Fold the left column to icons with a toggle, hide the right column from X's floating dock by default, and remove the "Live on X" chip on post detail pages.
 // @author       Longbiao CHEN
 // @homepageURL  https://github.com/longbiaochen/tampermonkey-scripts#x-tweaks
@@ -30,8 +30,6 @@ function createXTweaks(win, options = {}) {
   const RIGHT_TOGGLE_BUTTON_ID = "x-tweaks-right-column-toggle";
   const RIGHT_TOGGLE_HOST_ATTR = "data-x-tweaks-right-column-toggle-host";
   const RIGHT_TOGGLE_MODE_ATTR = "data-x-tweaks-right-column-toggle-mode";
-  const RIGHT_TOGGLE_FALLBACK_HOST_CLASS =
-    "css-175oi2r r-st84sj r-j3xhw6 r-8oi148 r-cgjvx2 r-11mg6pl r-1loqt21";
   const RIGHT_TOGGLE_FALLBACK_BUTTON_CLASS =
     "css-175oi2r r-6koalj r-eqz5dr r-16y2uox r-1pi2tsx r-1loqt21 r-o7ynqc r-6416eg r-1ny4l3l";
   const FLOATING_DOCK_TEST_ATTR = "data-x-tweaks-floating-dock";
@@ -40,9 +38,12 @@ function createXTweaks(win, options = {}) {
   const RIGHT_COLUMN_STORAGE_KEY = "x-tweaks:right-column-visible";
   const WEIBO_ICON_URL = "https://weibo.com/favicon.ico";
   const ICON_LINK_SELECTOR = "link[rel~='icon'], link[rel='apple-touch-icon']";
+  const DEFAULT_DOCK_GAP = 12;
+  const DOCK_MARGIN = 24;
 
   let hiddenCount = 0;
   let observer = null;
+  let resizeHandler = null;
 
   function normalizeText(value) {
     return String(value || "")
@@ -253,23 +254,17 @@ function createXTweaks(win, options = {}) {
         stroke-linejoin: round;
       }
 
+      [${RIGHT_TOGGLE_HOST_ATTR}="true"][${RIGHT_TOGGLE_MODE_ATTR}="floating"],
       [${RIGHT_TOGGLE_HOST_ATTR}="true"][${RIGHT_TOGGLE_MODE_ATTR}="fallback"] {
         position: fixed;
-        right: 24px;
-        bottom: 24px;
         z-index: 40;
-        width: 53px;
-        height: 55px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        pointer-events: auto;
       }
 
-      [${RIGHT_TOGGLE_HOST_ATTR}="true"][${RIGHT_TOGGLE_MODE_ATTR}="embedded"] {
-        position: static;
-      }
-
-      [${RIGHT_TOGGLE_HOST_ATTR}="true"][${RIGHT_TOGGLE_MODE_ATTR}="fallback"] #${RIGHT_TOGGLE_BUTTON_ID} {
+      [${RIGHT_TOGGLE_HOST_ATTR}="true"] #${RIGHT_TOGGLE_BUTTON_ID} {
         width: 100%;
         height: 100%;
         color: inherit;
@@ -553,40 +548,6 @@ function createXTweaks(win, options = {}) {
     return leftRect.top - rightRect.top || leftRect.left - rightRect.left;
   }
 
-  function resolveDockAnchorStructure(referenceButton, defaultHost, defaultAnchorItem) {
-    const innerWrapper = referenceButton.parentElement;
-    const outerWrapper = innerWrapper?.parentElement;
-
-    if (
-      innerWrapper instanceof win.HTMLElement &&
-      outerWrapper instanceof win.HTMLElement &&
-      outerWrapper.parentElement instanceof win.HTMLElement &&
-      outerWrapper.getBoundingClientRect().height > innerWrapper.getBoundingClientRect().height + 20
-    ) {
-      return {
-        host: outerWrapper.parentElement,
-        anchorItem: outerWrapper,
-        structure: {
-          nested: true,
-          outerClassName: outerWrapper.className || "",
-          outerStyle: outerWrapper.getAttribute("style") || "",
-          innerClassName: innerWrapper.className || "",
-          innerStyle: innerWrapper.getAttribute("style") || ""
-        }
-      };
-    }
-
-    return {
-      host: defaultHost,
-      anchorItem: defaultAnchorItem,
-      structure: {
-        nested: false,
-        outerClassName: innerWrapper instanceof win.HTMLElement ? innerWrapper.className || "" : "",
-        outerStyle: innerWrapper instanceof win.HTMLElement ? innerWrapper.getAttribute("style") || "" : ""
-      }
-    };
-  }
-
   function findFloatingDockAnchor() {
     const explicitHost = doc.querySelector(`[${FLOATING_DOCK_TEST_ATTR}="true"]`);
     if (explicitHost instanceof win.HTMLElement) {
@@ -595,13 +556,11 @@ function createXTweaks(win, options = {}) {
       ).filter((node) => node instanceof win.HTMLElement && node.id !== RIGHT_TOGGLE_BUTTON_ID);
       const visibleExplicitButtons = explicitButtons.filter(isVisibleDockButton).sort(sortDockButtonsByVisualOrder);
       const referenceButton = visibleExplicitButtons[0] || explicitButtons[0] || null;
-      const anchorItem =
-        referenceButton instanceof win.HTMLElement
-          ? getDockItem(explicitHost, referenceButton) || referenceButton.parentElement
-          : explicitHost.lastElementChild;
-      if (anchorItem instanceof win.HTMLElement && referenceButton instanceof win.HTMLElement) {
-        const structure = resolveDockAnchorStructure(referenceButton, explicitHost, anchorItem);
-        return { host: structure.host, anchorItem: structure.anchorItem, referenceButton, structure: structure.structure };
+      if (referenceButton instanceof win.HTMLElement) {
+        return {
+          referenceButton,
+          dockButtons: visibleExplicitButtons.length ? visibleExplicitButtons : explicitButtons
+        };
       }
       return null;
     }
@@ -618,28 +577,25 @@ function createXTweaks(win, options = {}) {
     if (candidates.length >= 2) {
       const host = findCommonAncestor(candidates[0], candidates[1]);
       if (host instanceof win.HTMLElement) {
-        const anchorItem = getDockItem(host, referenceButton);
-        if (anchorItem instanceof win.HTMLElement) {
-          const structure = resolveDockAnchorStructure(referenceButton, host, anchorItem);
-          return { host: structure.host, anchorItem: structure.anchorItem, referenceButton, structure: structure.structure };
-        }
+        return { referenceButton, dockButtons: candidates };
       }
     }
 
-    const anchorItem = referenceButton.parentElement;
-    const host = anchorItem?.parentElement;
-    if (anchorItem instanceof win.HTMLElement && host instanceof win.HTMLElement) {
-      const structure = resolveDockAnchorStructure(referenceButton, host, anchorItem);
-      return { host: structure.host, anchorItem: structure.anchorItem, referenceButton, structure: structure.structure };
+    if (referenceButton instanceof win.HTMLElement) {
+      return { referenceButton, dockButtons: [referenceButton] };
     }
 
     return null;
   }
 
-  function createRightToggleMount(referenceButton, structure = {}) {
+  function createRightToggleMount(referenceButton) {
     const mount = doc.createElement("div");
     mount.setAttribute(RIGHT_TOGGLE_HOST_ATTR, "true");
-    mount.setAttribute(RIGHT_TOGGLE_MODE_ATTR, "embedded");
+    mount.setAttribute(RIGHT_TOGGLE_MODE_ATTR, "floating");
+    mount.style.position = "fixed";
+    mount.style.display = "inline-flex";
+    mount.style.alignItems = "center";
+    mount.style.justifyContent = "center";
 
     const button = doc.createElement("button");
     button.id = RIGHT_TOGGLE_BUTTON_ID;
@@ -653,26 +609,7 @@ function createXTweaks(win, options = {}) {
       setRightColumnVisible(!readStoredRightColumnVisibility());
     });
 
-    mount.className = structure.outerClassName || referenceButton.parentElement?.className || "";
-    if (structure.outerStyle || referenceButton.parentElement?.getAttribute("style")) {
-      mount.setAttribute("style", structure.outerStyle || referenceButton.parentElement.getAttribute("style"));
-    } else {
-      mount.removeAttribute("style");
-    }
-
-    if (structure.nested) {
-      const inner = doc.createElement("div");
-      inner.className = structure.innerClassName || "";
-      if (structure.innerStyle) {
-        inner.setAttribute("style", structure.innerStyle);
-      }
-      inner.appendChild(button);
-      mount.appendChild(inner);
-    } else {
-      mount.style.marginBottom = "8px";
-      mount.appendChild(button);
-    }
-
+    mount.appendChild(button);
     return mount;
   }
 
@@ -680,7 +617,11 @@ function createXTweaks(win, options = {}) {
     const mount = doc.createElement("div");
     mount.setAttribute(RIGHT_TOGGLE_HOST_ATTR, "true");
     mount.setAttribute(RIGHT_TOGGLE_MODE_ATTR, "fallback");
-    mount.className = RIGHT_TOGGLE_FALLBACK_HOST_CLASS;
+    mount.style.position = "fixed";
+    mount.style.right = `${DOCK_MARGIN}px`;
+    mount.style.bottom = `${DOCK_MARGIN}px`;
+    mount.style.width = "53px";
+    mount.style.height = "55px";
 
     const button = doc.createElement("button");
     button.id = RIGHT_TOGGLE_BUTTON_ID;
@@ -695,21 +636,55 @@ function createXTweaks(win, options = {}) {
     return mount;
   }
 
+  function positionFloatingToggle(mount, anchor) {
+    if (!(mount instanceof win.HTMLElement) || !(anchor?.referenceButton instanceof win.HTMLElement)) {
+      return;
+    }
+
+    const referenceRect = anchor.referenceButton.getBoundingClientRect();
+    if (!referenceRect.width || !referenceRect.height) {
+      return;
+    }
+
+    const dockButtons = Array.isArray(anchor.dockButtons)
+      ? anchor.dockButtons.filter((node) => node instanceof win.HTMLElement)
+      : [];
+
+    let gap = DEFAULT_DOCK_GAP;
+    if (dockButtons.length >= 2) {
+      const firstRect = dockButtons[0].getBoundingClientRect();
+      const secondRect = dockButtons[1].getBoundingClientRect();
+      const measuredGap = secondRect.top - firstRect.bottom;
+      if (Number.isFinite(measuredGap) && measuredGap >= 0 && measuredGap <= 32) {
+        gap = measuredGap;
+      }
+    }
+
+    const nextTop = Math.max(DOCK_MARGIN, referenceRect.top - referenceRect.height - gap);
+    const nextRight = Math.max(DOCK_MARGIN, win.innerWidth - referenceRect.right);
+
+    mount.style.top = `${Math.round(nextTop)}px`;
+    mount.style.right = `${Math.round(nextRight)}px`;
+    mount.style.width = `${Math.round(referenceRect.width)}px`;
+    mount.style.height = `${Math.round(referenceRect.height)}px`;
+  }
+
   function ensureRightColumnToggleButton() {
     const anchor = findFloatingDockAnchor();
     const existingButton = doc.getElementById(RIGHT_TOGGLE_BUTTON_ID);
     let mount = existingButton?.closest(`[${RIGHT_TOGGLE_HOST_ATTR}="true"]`);
 
-    if (anchor?.host instanceof win.HTMLElement) {
-      if (!(mount instanceof win.HTMLElement) || mount.getAttribute(RIGHT_TOGGLE_MODE_ATTR) !== "embedded") {
+    if (anchor?.referenceButton instanceof win.HTMLElement) {
+      if (!(mount instanceof win.HTMLElement) || mount.getAttribute(RIGHT_TOGGLE_MODE_ATTR) !== "floating") {
         mount?.remove();
-        mount = createRightToggleMount(anchor.referenceButton, anchor.structure);
+        mount = createRightToggleMount(anchor.referenceButton);
       }
 
-      if (mount.parentElement !== anchor.host || mount.nextElementSibling !== anchor.anchorItem) {
-        anchor.host.insertBefore(mount, anchor.anchorItem);
+      if (mount.parentElement !== doc.body) {
+        doc.body.appendChild(mount);
       }
 
+      positionFloatingToggle(mount, anchor);
       updateRightColumnButton();
       return;
     }
@@ -835,10 +810,19 @@ function createXTweaks(win, options = {}) {
       childList: true,
       subtree: true
     });
+
+    resizeHandler = () => {
+      ensureRightColumnToggleButton();
+    };
+    win.addEventListener("resize", resizeHandler);
   }
 
   function stop() {
     observer?.disconnect();
+    if (resizeHandler) {
+      win.removeEventListener("resize", resizeHandler);
+      resizeHandler = null;
+    }
   }
 
   return {
