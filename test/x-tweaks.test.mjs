@@ -250,6 +250,106 @@ export async function runXTweaksTests() {
     dom.window.close();
   });
 
+  await runCase("expand right column on home and collapse it on post route changes", async () => {
+    const dom = createDom({
+      pathname: "/home",
+      body: `
+        <div id="layout">
+          <aside id="left-column">
+            <nav>
+              <a href="/home"><span>Home</span></a>
+            </nav>
+          </aside>
+          <main data-testid="primaryColumn">Primary</main>
+          <aside data-testid="sidebarColumn">Sidebar</aside>
+        </div>
+      `
+    });
+
+    const app = createXTweaks(dom.window);
+    app.start();
+
+    assert.equal(
+      dom.window.document.documentElement.getAttribute("data-x-tweaks-right-column-hidden"),
+      "false"
+    );
+
+    dom.window.history.pushState({}, "", "/someone/status/123");
+    await nextTick();
+
+    assert.equal(
+      dom.window.document.documentElement.getAttribute("data-x-tweaks-right-column-hidden"),
+      "true"
+    );
+    assert.equal(app.isRightColumnVisible(), false);
+
+    dom.window.history.pushState({}, "", "/home");
+    await nextTick();
+
+    assert.equal(
+      dom.window.document.documentElement.getAttribute("data-x-tweaks-right-column-hidden"),
+      "false"
+    );
+    assert.equal(app.isRightColumnVisible(), true);
+
+    app.stop();
+    dom.window.close();
+  });
+
+  await runCase("force post route to keep right column collapsed after a manual home-page toggle", async () => {
+    const dom = createDom({
+      pathname: "/home",
+      body: `
+        <div id="layout">
+          <aside id="left-column">
+            <nav>
+              <a href="/home"><span>Home</span></a>
+            </nav>
+          </aside>
+          <main data-testid="primaryColumn">Primary</main>
+          <aside data-testid="sidebarColumn">Sidebar</aside>
+        </div>
+      `
+    });
+
+    const app = createXTweaks(dom.window);
+    app.start();
+    app.setRightColumnVisible(false);
+
+    assert.equal(
+      dom.window.document.documentElement.getAttribute("data-x-tweaks-right-column-hidden"),
+      "true"
+    );
+    assert.equal(dom.window.localStorage.getItem("x-tweaks:right-column-visible"), "false");
+
+    dom.window.history.pushState({}, "", "/home");
+    await nextTick();
+
+    assert.equal(
+      dom.window.document.documentElement.getAttribute("data-x-tweaks-right-column-hidden"),
+      "true"
+    );
+
+    dom.window.history.pushState({}, "", "/someone/status/456");
+    await nextTick();
+
+    assert.equal(
+      dom.window.document.documentElement.getAttribute("data-x-tweaks-right-column-hidden"),
+      "true"
+    );
+
+    dom.window.history.pushState({}, "", "/home");
+    await nextTick();
+
+    assert.equal(
+      dom.window.document.documentElement.getAttribute("data-x-tweaks-right-column-hidden"),
+      "false"
+    );
+
+    app.stop();
+    dom.window.close();
+  });
+
   await runCase("inject fallback right-column toggle when floating dock is absent", async () => {
     const dom = createDom({
       body: `
@@ -433,7 +533,7 @@ export async function runXTweaksTests() {
 
     assert.equal(
       dom.window.document.documentElement.getAttribute("data-x-tweaks-right-column-hidden"),
-      "false"
+      "true"
     );
     assert.equal(dom.window.document.getElementById("layout")?.getAttribute("data-x-tweaks-layout-root"), "true");
     assert.equal(

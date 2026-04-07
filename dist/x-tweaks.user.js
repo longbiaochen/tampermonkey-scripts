@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         X Tweaks
 // @namespace    http://tampermonkey.net/
-// @version      0.3.16
+// @version      0.3.17
 // @description  Fold the left column to icons with a toggle, hide the right column from X's floating dock by default, and remove the "Live on X" chip on post detail pages.
 // @author       Longbiao CHEN
 // @homepageURL  https://github.com/longbiaochen/tampermonkey-scripts#x-tweaks
@@ -44,6 +44,10 @@ function createXTweaks(win, options = {}) {
   let hiddenCount = 0;
   let observer = null;
   let resizeHandler = null;
+  let popstateHandler = null;
+  let originalPushState = null;
+  let originalReplaceState = null;
+  let lastRoutePathname = null;
 
   function normalizeText(value) {
     return String(value || "")
@@ -53,11 +57,13 @@ function createXTweaks(win, options = {}) {
   }
 
   function isStatusPage() {
-    const pathname =
-      typeof options.pathname === "string" && options.pathname.length > 0
-        ? options.pathname
-        : win.location.pathname;
-    return STATUS_PATH_RE.test(pathname);
+    return STATUS_PATH_RE.test(getPathname());
+  }
+
+  function getPathname() {
+    return typeof options.pathname === "string" && options.pathname.length > 0
+      ? options.pathname
+      : win.location.pathname;
   }
 
   function readStoredBool(key, defaultValue) {
@@ -76,12 +82,16 @@ function createXTweaks(win, options = {}) {
     return readStoredBool(LEFT_COLUMN_STORAGE_KEY, true);
   }
 
+  function readCurrentRightColumnVisibility() {
+    return doc.documentElement.getAttribute(RIGHT_COLUMN_HIDDEN_ATTR) !== "true";
+  }
+
   function updateState() {
     win.__xTweaksState = {
       active: true,
       hiddenCount,
       leftColumnFolded: readStoredLeftColumnFolded(),
-      rightColumnVisible: readStoredRightColumnVisibility(),
+      rightColumnVisible: readCurrentRightColumnVisibility(),
       leftColumnCount: doc.querySelectorAll(LEFT_COLUMN_SELECTOR).length,
       rightColumnCount: doc.querySelectorAll(RIGHT_COLUMN_SELECTOR).length
     };
@@ -441,7 +451,7 @@ function createXTweaks(win, options = {}) {
       return;
     }
 
-    const visible = readStoredRightColumnVisibility();
+    const visible = readCurrentRightColumnVisibility();
     const nextPressed = visible ? "true" : "false";
     const nextTitle = visible ? "Hide the right column" : "Show the right column";
     const nextLabel = visible ? "Hide right column" : "Show right column";
@@ -474,6 +484,26 @@ function createXTweaks(win, options = {}) {
 
   function setRightColumnVisible(visible) {
     applyRightColumnVisible(visible, { persist: true });
+  }
+
+  function defaultRightColumnVisibilityForPath(pathname = getPathname()) {
+    return !STATUS_PATH_RE.test(pathname);
+  }
+
+  function syncRightColumnToRoute(pathname = getPathname()) {
+    applyRightColumnVisible(defaultRightColumnVisibilityForPath(pathname), { persist: false });
+  }
+
+  function handleRouteChange() {
+    const pathname = getPathname();
+    if (pathname === lastRoutePathname) {
+      return;
+    }
+
+    lastRoutePathname = pathname;
+    syncRightColumnToRoute(pathname);
+    hiddenCount += processLiveChip(doc.body);
+    updateState();
   }
 
   function applyLeftColumnFolded(folded, { persist } = { persist: true }) {
@@ -871,7 +901,8 @@ function createXTweaks(win, options = {}) {
     markLayoutRoots(node);
     hiddenCount += processLiveChip(node);
     ensureRightColumnToggleButton();
-    applyStoredLayoutState({ persist: false });
+    applyLeftColumnFolded(readStoredLeftColumnFolded(), { persist: false });
+    syncRightColumnToRoute();
   }
 
   function start() {
@@ -879,7 +910,9 @@ function createXTweaks(win, options = {}) {
     ensureWeiboIcons();
     markLayoutRoots(doc.body);
     ensureRightColumnToggleButton();
-    applyStoredLayoutState({ persist: false });
+    applyLeftColumnFolded(readStoredLeftColumnFolded(), { persist: false });
+    lastRoutePathname = getPathname();
+    syncRightColumnToRoute(lastRoutePathname);
     hiddenCount += processLiveChip(doc.body);
     updateState();
 
@@ -891,7 +924,9 @@ function createXTweaks(win, options = {}) {
       }
 
       ensureRightColumnToggleButton();
-      applyStoredLayoutState({ persist: false });
+      applyLeftColumnFolded(readStoredLeftColumnFolded(), { persist: false });
+      syncRightColumnToRoute();
+      handleRouteChange();
       updateState();
     });
 
@@ -904,6 +939,24 @@ function createXTweaks(win, options = {}) {
       ensureRightColumnToggleButton();
     };
     win.addEventListener("resize", resizeHandler);
+
+    popstateHandler = () => {
+      handleRouteChange();
+    };
+    win.addEventListener("popstate", popstateHandler);
+
+    originalPushState = win.history.pushState.bind(win.history);
+    originalReplaceState = win.history.replaceState.bind(win.history);
+    win.history.pushState = (...args) => {
+      const result = originalPushState(...args);
+      handleRouteChange();
+      return result;
+    };
+    win.history.replaceState = (...args) => {
+      const result = originalReplaceState(...args);
+      handleRouteChange();
+      return result;
+    };
   }
 
   function stop() {
@@ -911,6 +964,18 @@ function createXTweaks(win, options = {}) {
     if (resizeHandler) {
       win.removeEventListener("resize", resizeHandler);
       resizeHandler = null;
+    }
+    if (popstateHandler) {
+      win.removeEventListener("popstate", popstateHandler);
+      popstateHandler = null;
+    }
+    if (originalPushState) {
+      win.history.pushState = originalPushState;
+      originalPushState = null;
+    }
+    if (originalReplaceState) {
+      win.history.replaceState = originalReplaceState;
+      originalReplaceState = null;
     }
   }
 
@@ -920,7 +985,7 @@ function createXTweaks(win, options = {}) {
     setLeftColumnFolded,
     setRightColumnVisible,
     isLeftColumnFolded: readStoredLeftColumnFolded,
-    isRightColumnVisible: readStoredRightColumnVisibility,
+    isRightColumnVisible: readCurrentRightColumnVisibility,
     selectors: {
       LEFT_COLUMN_SELECTOR,
       RIGHT_COLUMN_SELECTOR,
