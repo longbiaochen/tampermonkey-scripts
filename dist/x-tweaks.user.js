@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         X Tweaks
 // @namespace    http://tampermonkey.net/
-// @version      0.3.10
+// @version      0.3.11
 // @description  Fold the left column to icons with a toggle, hide the right column from X's floating dock by default, and remove the "Live on X" chip on post detail pages.
 // @author       Longbiao CHEN
 // @homepageURL  https://github.com/longbiaochen/tampermonkey-scripts#x-tweaks
@@ -27,8 +27,6 @@ function createXTweaks(win, options = {}) {
   const LEFT_COLUMN_FOLDED_ATTR = "data-x-tweaks-left-column-folded";
   const RIGHT_COLUMN_HIDDEN_ATTR = "data-x-tweaks-right-column-hidden";
   const LAYOUT_ROOT_ATTR = "data-x-tweaks-layout-root";
-  const LEFT_TOGGLE_BUTTON_ID = "x-tweaks-left-column-toggle";
-  const LEFT_TOGGLE_HOST_ATTR = "data-x-tweaks-left-column-toggle-host";
   const RIGHT_TOGGLE_BUTTON_ID = "x-tweaks-right-column-toggle";
   const RIGHT_TOGGLE_HOST_ATTR = "data-x-tweaks-right-column-toggle-host";
   const RIGHT_TOGGLE_MODE_ATTR = "data-x-tweaks-right-column-toggle-mode";
@@ -45,7 +43,6 @@ function createXTweaks(win, options = {}) {
 
   let hiddenCount = 0;
   let observer = null;
-  let positionSyncQueued = false;
 
   function normalizeText(value) {
     return String(value || "")
@@ -280,48 +277,6 @@ function createXTweaks(win, options = {}) {
         justify-content: center;
       }
 
-      [${LEFT_TOGGLE_HOST_ATTR}="true"] {
-        position: fixed;
-        width: 28px;
-        height: 28px;
-        z-index: 30;
-      }
-
-      #${LEFT_TOGGLE_BUTTON_ID} {
-        appearance: none;
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        background: rgba(15, 20, 25, 0.92);
-        color: rgb(231, 233, 234);
-        width: 28px;
-        height: 28px;
-        border-radius: 9999px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
-        padding: 0;
-      }
-
-      #${LEFT_TOGGLE_BUTTON_ID}:hover {
-        background: rgba(29, 155, 240, 0.92);
-        border-color: rgba(29, 155, 240, 0.92);
-      }
-
-      #${LEFT_TOGGLE_BUTTON_ID}:focus-visible {
-        outline: 2px solid #1d9bf0;
-        outline-offset: 2px;
-      }
-
-      #${LEFT_TOGGLE_BUTTON_ID} svg {
-        width: 16px;
-        height: 16px;
-        fill: none;
-        stroke: currentColor;
-        stroke-width: 2;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-      }
     `;
 
     doc.head.appendChild(style);
@@ -484,57 +439,6 @@ function createXTweaks(win, options = {}) {
     `;
   }
 
-  function leftButtonSvg() {
-    const folded = readStoredLeftColumnFolded();
-    const direction = folded ? "M9 6l6 6-6 6" : "M15 6l-6 6 6 6";
-    return `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="${direction}"></path>
-      </svg>
-    `;
-  }
-
-  function updateLeftColumnButton() {
-    const button = doc.getElementById(LEFT_TOGGLE_BUTTON_ID);
-    if (!(button instanceof win.HTMLButtonElement)) {
-      return;
-    }
-
-    const folded = readStoredLeftColumnFolded();
-    const nextPressed = folded ? "true" : "false";
-    const nextTitle = folded ? "Expand the left column" : "Collapse the left column";
-    const nextLabel = folded ? "Expand left column" : "Collapse left column";
-    const nextSvg = leftButtonSvg();
-
-    if (button.innerHTML !== nextSvg) {
-      button.innerHTML = nextSvg;
-    }
-
-    if (button.getAttribute("aria-pressed") !== nextPressed) {
-      button.setAttribute("aria-pressed", nextPressed);
-    }
-
-    if (button.getAttribute("aria-label") !== nextLabel) {
-      button.setAttribute("aria-label", nextLabel);
-    }
-
-    if (button.title !== nextTitle) {
-      button.title = nextTitle;
-    }
-  }
-
-  function queuePositionSync() {
-    if (positionSyncQueued) {
-      return;
-    }
-
-    positionSyncQueued = true;
-    win.requestAnimationFrame(() => {
-      positionSyncQueued = false;
-      syncFloatingControlPositions();
-    });
-  }
-
   function updateRightColumnButton() {
     const button = doc.getElementById(RIGHT_TOGGLE_BUTTON_ID);
     if (!(button instanceof win.HTMLButtonElement)) {
@@ -581,7 +485,6 @@ function createXTweaks(win, options = {}) {
       win.localStorage.setItem(LEFT_COLUMN_STORAGE_KEY, folded ? "true" : "false");
     }
     doc.documentElement.setAttribute(LEFT_COLUMN_FOLDED_ATTR, folded ? "true" : "false");
-    updateLeftColumnButton();
     updateState();
   }
 
@@ -641,19 +544,20 @@ function createXTweaks(win, options = {}) {
     return null;
   }
 
+  function sortDockButtonsByVisualOrder(left, right) {
+    const leftRect = left.getBoundingClientRect();
+    const rightRect = right.getBoundingClientRect();
+    return leftRect.top - rightRect.top || leftRect.left - rightRect.left;
+  }
+
   function findFloatingDockAnchor() {
     const explicitHost = doc.querySelector(`[${FLOATING_DOCK_TEST_ATTR}="true"]`);
     if (explicitHost instanceof win.HTMLElement) {
       const explicitButtons = Array.from(
         explicitHost.querySelectorAll("button, a[href], [role='button']")
       ).filter((node) => node instanceof win.HTMLElement && node.id !== RIGHT_TOGGLE_BUTTON_ID);
-      const visibleExplicitButtons = explicitButtons.filter(isVisibleDockButton).sort((left, right) => {
-        const leftRect = left.getBoundingClientRect();
-        const rightRect = right.getBoundingClientRect();
-        return rightRect.bottom - leftRect.bottom || rightRect.right - leftRect.right;
-      });
-      const referenceButton =
-        visibleExplicitButtons[0] || explicitButtons[explicitButtons.length - 1] || null;
+      const visibleExplicitButtons = explicitButtons.filter(isVisibleDockButton).sort(sortDockButtonsByVisualOrder);
+      const referenceButton = visibleExplicitButtons[0] || explicitButtons[0] || null;
       const anchorItem =
         referenceButton instanceof win.HTMLElement
           ? getDockItem(explicitHost, referenceButton) || referenceButton.parentElement
@@ -666,11 +570,7 @@ function createXTweaks(win, options = {}) {
 
     const candidates = Array.from(doc.querySelectorAll("button, a[href], [role='button']"))
       .filter(isVisibleDockButton)
-      .sort((left, right) => {
-        const leftRect = left.getBoundingClientRect();
-        const rightRect = right.getBoundingClientRect();
-        return rightRect.bottom - leftRect.bottom || rightRect.right - leftRect.right;
-      });
+      .sort(sortDockButtonsByVisualOrder);
 
     if (!candidates.length) {
       return null;
@@ -752,8 +652,8 @@ function createXTweaks(win, options = {}) {
         mount = createRightToggleMount(anchor.referenceButton);
       }
 
-      if (anchor.anchorItem.nextSibling !== mount) {
-        anchor.host.insertBefore(mount, anchor.anchorItem.nextSibling);
+      if (anchor.host.firstElementChild !== mount || mount.nextElementSibling !== anchor.anchorItem) {
+        anchor.host.insertBefore(mount, anchor.anchorItem);
       }
 
       updateRightColumnButton();
@@ -770,83 +670,6 @@ function createXTweaks(win, options = {}) {
     }
 
     updateRightColumnButton();
-  }
-
-  function createLeftToggleMount(leftColumn) {
-    const mount = doc.createElement("div");
-    mount.setAttribute(LEFT_TOGGLE_HOST_ATTR, "true");
-
-    const button = doc.createElement("button");
-    button.id = LEFT_TOGGLE_BUTTON_ID;
-    button.type = "button";
-    button.addEventListener("click", () => {
-      setLeftColumnFolded(!readStoredLeftColumnFolded());
-    });
-
-    mount.appendChild(button);
-    leftColumn.appendChild(mount);
-    return mount;
-  }
-
-  function ensureLeftColumnToggleButton() {
-    const leftColumns = Array.from(doc.querySelectorAll(LEFT_COLUMN_SELECTOR));
-    for (const leftColumn of leftColumns) {
-      if (!(leftColumn instanceof win.HTMLElement)) {
-        continue;
-      }
-
-      let mount = leftColumn.querySelector(`[${LEFT_TOGGLE_HOST_ATTR}="true"]`);
-      if (!(mount instanceof win.HTMLElement)) {
-        mount = createLeftToggleMount(leftColumn);
-      } else if (mount.parentElement !== leftColumn) {
-        leftColumn.appendChild(mount);
-      }
-
-      positionLeftToggleMount(leftColumn, mount);
-    }
-
-    updateLeftColumnButton();
-  }
-
-  function positionLeftToggleMount(leftColumn, mount) {
-    if (!(leftColumn instanceof win.HTMLElement) || !(mount instanceof win.HTMLElement)) {
-      return;
-    }
-
-    const columnRect = leftColumn.getBoundingClientRect();
-    if (!columnRect.width && !columnRect.height) {
-      return;
-    }
-
-    const homeLink = leftColumn.querySelector("[data-testid='AppTabBar_Home_Link'], a[href='/home']");
-    const referenceRect =
-      homeLink instanceof win.HTMLElement ? homeLink.getBoundingClientRect() : columnRect;
-    const size = 28;
-    const left = Math.round(columnRect.right + 8);
-    const top = Math.round(
-      Math.max(columnRect.top + 68, referenceRect.top + (referenceRect.height - size) / 2)
-    );
-
-    mount.style.position = "fixed";
-    mount.style.width = `${size}px`;
-    mount.style.height = `${size}px`;
-    mount.style.zIndex = "30";
-    mount.style.left = `${left}px`;
-    mount.style.top = `${top}px`;
-  }
-
-  function syncFloatingControlPositions() {
-    const leftColumns = Array.from(doc.querySelectorAll(LEFT_COLUMN_SELECTOR));
-    for (const leftColumn of leftColumns) {
-      if (!(leftColumn instanceof win.HTMLElement)) {
-        continue;
-      }
-
-      const mount = leftColumn.querySelector(`[${LEFT_TOGGLE_HOST_ATTR}="true"]`);
-      if (mount instanceof win.HTMLElement) {
-        positionLeftToggleMount(leftColumn, mount);
-      }
-    }
   }
 
   function applyStoredLayoutState({ persist = false } = {}) {
@@ -929,25 +752,18 @@ function createXTweaks(win, options = {}) {
     ensureWeiboIcons();
     markLayoutRoots(node);
     hiddenCount += processLiveChip(node);
-    ensureLeftColumnToggleButton();
     ensureRightColumnToggleButton();
     applyStoredLayoutState({ persist: false });
-    queuePositionSync();
   }
 
   function start() {
     ensureStyles();
     ensureWeiboIcons();
     markLayoutRoots(doc.body);
-    ensureLeftColumnToggleButton();
     ensureRightColumnToggleButton();
     applyStoredLayoutState({ persist: false });
-    queuePositionSync();
     hiddenCount += processLiveChip(doc.body);
     updateState();
-
-    win.addEventListener("resize", queuePositionSync);
-    win.addEventListener("scroll", queuePositionSync, true);
 
     observer = new win.MutationObserver((mutations) => {
       for (const mutation of mutations) {
@@ -956,10 +772,8 @@ function createXTweaks(win, options = {}) {
         }
       }
 
-      ensureLeftColumnToggleButton();
       ensureRightColumnToggleButton();
       applyStoredLayoutState({ persist: false });
-      queuePositionSync();
       updateState();
     });
 
@@ -971,8 +785,6 @@ function createXTweaks(win, options = {}) {
 
   function stop() {
     observer?.disconnect();
-    win.removeEventListener("resize", queuePositionSync);
-    win.removeEventListener("scroll", queuePositionSync, true);
   }
 
   return {
@@ -986,7 +798,6 @@ function createXTweaks(win, options = {}) {
       LEFT_COLUMN_SELECTOR,
       RIGHT_COLUMN_SELECTOR,
       PRIMARY_COLUMN_SELECTOR,
-      LEFT_TOGGLE_BUTTON_ID,
       RIGHT_TOGGLE_BUTTON_ID
     },
     storageKeys: {
