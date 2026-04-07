@@ -229,6 +229,58 @@ export async function runXTweaksTests() {
     dom.window.close();
   });
 
+  await runCase("embed right-column toggle when only one native dock item is present", async () => {
+    const dom = createDom({
+      body: `
+        <div id="layout">
+          <header id="left-column">
+            <nav>
+              <a href="/home"><span>Home</span></a>
+            </nav>
+          </header>
+          <main>
+            <div data-testid="primaryColumn">Primary</div>
+            <aside data-testid="sidebarColumn">Sidebar</aside>
+          </main>
+        </div>
+        <div id="dock-host">
+          <div class="dock-wrapper">
+            <div class="dock-item"><button id="chart" class="native-button" type="button">C</button></div>
+          </div>
+        </div>
+      `
+    });
+
+    const nativeButton = dom.window.document.getElementById("chart");
+    nativeButton.getBoundingClientRect = () => ({
+      x: 1423,
+      y: 653,
+      width: 53,
+      height: 55,
+      top: 653,
+      left: 1423,
+      right: 1476,
+      bottom: 708
+    });
+
+    Object.defineProperty(dom.window, "innerWidth", { value: 1512, configurable: true });
+    Object.defineProperty(dom.window, "innerHeight", { value: 982, configurable: true });
+
+    const app = createXTweaks(dom.window);
+    app.start();
+
+    const rightToggle = dom.window.document.getElementById("x-tweaks-right-column-toggle");
+    const mount = rightToggle?.closest('[data-x-tweaks-right-column-toggle-host="true"]');
+    const wrapper = dom.window.document.querySelector(".dock-wrapper");
+
+    assert.equal(mount?.getAttribute("data-x-tweaks-right-column-toggle-mode"), "embedded");
+    assert.equal(mount?.parentElement, wrapper);
+    assert.equal(mount?.previousElementSibling?.className, "dock-item");
+
+    app.stop();
+    dom.window.close();
+  });
+
   await runCase("hide live on x chip on status pages", async () => {
     const dom = createDom({
       pathname: "/someone/status/123",

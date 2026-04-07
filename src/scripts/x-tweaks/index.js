@@ -16,6 +16,10 @@ function createXTweaks(win, options = {}) {
   const RIGHT_TOGGLE_BUTTON_ID = "x-tweaks-right-column-toggle";
   const RIGHT_TOGGLE_HOST_ATTR = "data-x-tweaks-right-column-toggle-host";
   const RIGHT_TOGGLE_MODE_ATTR = "data-x-tweaks-right-column-toggle-mode";
+  const RIGHT_TOGGLE_FALLBACK_HOST_CLASS =
+    "css-175oi2r r-st84sj r-j3xhw6 r-8oi148 r-cgjvx2 r-11mg6pl r-1loqt21";
+  const RIGHT_TOGGLE_FALLBACK_BUTTON_CLASS =
+    "css-175oi2r r-6koalj r-eqz5dr r-16y2uox r-1pi2tsx r-1loqt21 r-o7ynqc r-6416eg r-1ny4l3l";
   const FLOATING_DOCK_TEST_ATTR = "data-x-tweaks-floating-dock";
   const STYLE_ID = "x-tweaks-styles";
   const LEFT_COLUMN_STORAGE_KEY = "x-tweaks:left-column-folded";
@@ -25,6 +29,7 @@ function createXTweaks(win, options = {}) {
 
   let hiddenCount = 0;
   let observer = null;
+  let positionSyncQueued = false;
 
   function normalizeText(value) {
     return String(value || "")
@@ -240,13 +245,8 @@ function createXTweaks(win, options = {}) {
         right: 24px;
         bottom: 24px;
         z-index: 40;
-        width: 56px;
-        height: 56px;
-        border-radius: 9999px;
-        background: rgba(15, 20, 25, 0.94);
-        color: rgb(231, 233, 234);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        width: 53px;
+        height: 55px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -260,13 +260,15 @@ function createXTweaks(win, options = {}) {
         width: 100%;
         height: 100%;
         color: inherit;
+        align-items: center;
+        justify-content: center;
       }
 
       [${LEFT_TOGGLE_HOST_ATTR}="true"] {
-        position: absolute;
-        top: 88px;
-        right: -14px;
-        z-index: 20;
+        position: fixed;
+        width: 28px;
+        height: 28px;
+        z-index: 30;
       }
 
       #${LEFT_TOGGLE_BUTTON_ID} {
@@ -460,8 +462,8 @@ function createXTweaks(win, options = {}) {
   function buttonSvg() {
     return `
       <svg viewBox="0 0 24 24" aria-hidden="true">
-        <rect x="4" y="5" width="16" height="14" rx="2"></rect>
-        <path d="M14 5v14"></path>
+        <path d="M4.75 5.5h14.5a1.75 1.75 0 0 1 1.75 1.75v9.5a1.75 1.75 0 0 1-1.75 1.75H4.75A1.75 1.75 0 0 1 3 16.75v-9.5A1.75 1.75 0 0 1 4.75 5.5Z"></path>
+        <path d="M9.5 5.5v13"></path>
       </svg>
     `;
   }
@@ -503,6 +505,18 @@ function createXTweaks(win, options = {}) {
     if (button.title !== nextTitle) {
       button.title = nextTitle;
     }
+  }
+
+  function queuePositionSync() {
+    if (positionSyncQueued) {
+      return;
+    }
+
+    positionSyncQueued = true;
+    win.requestAnimationFrame(() => {
+      positionSyncQueued = false;
+      syncFloatingControlPositions();
+    });
   }
 
   function updateRightColumnButton() {
@@ -611,10 +625,27 @@ function createXTweaks(win, options = {}) {
     return null;
   }
 
-  function findFloatingDockHost() {
+  function findFloatingDockAnchor() {
     const explicitHost = doc.querySelector(`[${FLOATING_DOCK_TEST_ATTR}="true"]`);
     if (explicitHost instanceof win.HTMLElement) {
-      return explicitHost;
+      const explicitButtons = Array.from(
+        explicitHost.querySelectorAll("button, a[href], [role='button']")
+      ).filter((node) => node instanceof win.HTMLElement && node.id !== RIGHT_TOGGLE_BUTTON_ID);
+      const visibleExplicitButtons = explicitButtons.filter(isVisibleDockButton).sort((left, right) => {
+        const leftRect = left.getBoundingClientRect();
+        const rightRect = right.getBoundingClientRect();
+        return rightRect.bottom - leftRect.bottom || rightRect.right - leftRect.right;
+      });
+      const referenceButton =
+        visibleExplicitButtons[0] || explicitButtons[explicitButtons.length - 1] || null;
+      const anchorItem =
+        referenceButton instanceof win.HTMLElement
+          ? getDockItem(explicitHost, referenceButton) || referenceButton.parentElement
+          : explicitHost.lastElementChild;
+      if (anchorItem instanceof win.HTMLElement && referenceButton instanceof win.HTMLElement) {
+        return { host: explicitHost, anchorItem, referenceButton };
+      }
+      return null;
     }
 
     const candidates = Array.from(doc.querySelectorAll("button, a[href], [role='button']"))
@@ -625,11 +656,28 @@ function createXTweaks(win, options = {}) {
         return rightRect.bottom - leftRect.bottom || rightRect.right - leftRect.right;
       });
 
-    if (candidates.length < 2) {
+    if (!candidates.length) {
       return null;
     }
 
-    return findCommonAncestor(candidates[0], candidates[1]);
+    const referenceButton = candidates[0];
+    if (candidates.length >= 2) {
+      const host = findCommonAncestor(candidates[0], candidates[1]);
+      if (host instanceof win.HTMLElement) {
+        const anchorItem = getDockItem(host, referenceButton);
+        if (anchorItem instanceof win.HTMLElement) {
+          return { host, anchorItem, referenceButton };
+        }
+      }
+    }
+
+    const anchorItem = referenceButton.parentElement;
+    const host = anchorItem?.parentElement;
+    if (anchorItem instanceof win.HTMLElement && host instanceof win.HTMLElement) {
+      return { host, anchorItem, referenceButton };
+    }
+
+    return null;
   }
 
   function createRightToggleMount(referenceButton) {
@@ -662,10 +710,13 @@ function createXTweaks(win, options = {}) {
     const mount = doc.createElement("div");
     mount.setAttribute(RIGHT_TOGGLE_HOST_ATTR, "true");
     mount.setAttribute(RIGHT_TOGGLE_MODE_ATTR, "fallback");
+    mount.className = RIGHT_TOGGLE_FALLBACK_HOST_CLASS;
 
     const button = doc.createElement("button");
     button.id = RIGHT_TOGGLE_BUTTON_ID;
     button.type = "button";
+    button.className = RIGHT_TOGGLE_FALLBACK_BUTTON_CLASS;
+    button.setAttribute("style", "align-items: center; justify-content: center;");
     button.addEventListener("click", () => {
       setRightColumnVisible(!readStoredRightColumnVisibility());
     });
@@ -675,33 +726,22 @@ function createXTweaks(win, options = {}) {
   }
 
   function ensureRightColumnToggleButton() {
-    const host = findFloatingDockHost();
+    const anchor = findFloatingDockAnchor();
     const existingButton = doc.getElementById(RIGHT_TOGGLE_BUTTON_ID);
     let mount = existingButton?.closest(`[${RIGHT_TOGGLE_HOST_ATTR}="true"]`);
 
-    if (host instanceof win.HTMLElement) {
-      const nativeButtons = Array.from(host.querySelectorAll("button, a[href], [role='button']")).filter(
-        (node) => node instanceof win.HTMLElement && node.id !== RIGHT_TOGGLE_BUTTON_ID
-      );
-
-      if (nativeButtons.length >= 2) {
-        const secondNativeButton = nativeButtons[1];
-        const anchorItem = getDockItem(host, secondNativeButton);
-
-        if (anchorItem instanceof win.HTMLElement) {
-          if (!(mount instanceof win.HTMLElement) || mount.getAttribute(RIGHT_TOGGLE_MODE_ATTR) !== "embedded") {
-            mount?.remove();
-            mount = createRightToggleMount(secondNativeButton);
-          }
-
-          if (anchorItem.nextSibling !== mount) {
-            host.insertBefore(mount, anchorItem.nextSibling);
-          }
-
-          updateRightColumnButton();
-          return;
-        }
+    if (anchor?.host instanceof win.HTMLElement) {
+      if (!(mount instanceof win.HTMLElement) || mount.getAttribute(RIGHT_TOGGLE_MODE_ATTR) !== "embedded") {
+        mount?.remove();
+        mount = createRightToggleMount(anchor.referenceButton);
       }
+
+      if (anchor.anchorItem.nextSibling !== mount) {
+        anchor.host.insertBefore(mount, anchor.anchorItem.nextSibling);
+      }
+
+      updateRightColumnButton();
+      return;
     }
 
     if (!(mount instanceof win.HTMLElement) || mount.getAttribute(RIGHT_TOGGLE_MODE_ATTR) !== "fallback") {
@@ -745,9 +785,50 @@ function createXTweaks(win, options = {}) {
       } else if (mount.parentElement !== leftColumn) {
         leftColumn.appendChild(mount);
       }
+
+      positionLeftToggleMount(leftColumn, mount);
     }
 
     updateLeftColumnButton();
+  }
+
+  function positionLeftToggleMount(leftColumn, mount) {
+    if (!(leftColumn instanceof win.HTMLElement) || !(mount instanceof win.HTMLElement)) {
+      return;
+    }
+
+    const columnRect = leftColumn.getBoundingClientRect();
+    if (!columnRect.width && !columnRect.height) {
+      return;
+    }
+
+    const homeLink = leftColumn.querySelector("[data-testid='AppTabBar_Home_Link'], a[href='/home']");
+    const referenceRect =
+      homeLink instanceof win.HTMLElement ? homeLink.getBoundingClientRect() : columnRect;
+    const size = 28;
+    const left = Math.round(columnRect.right + 8);
+    const top = Math.round(Math.max(16, referenceRect.top + (referenceRect.height - size) / 2));
+
+    mount.style.position = "fixed";
+    mount.style.width = `${size}px`;
+    mount.style.height = `${size}px`;
+    mount.style.zIndex = "30";
+    mount.style.left = `${left}px`;
+    mount.style.top = `${top}px`;
+  }
+
+  function syncFloatingControlPositions() {
+    const leftColumns = Array.from(doc.querySelectorAll(LEFT_COLUMN_SELECTOR));
+    for (const leftColumn of leftColumns) {
+      if (!(leftColumn instanceof win.HTMLElement)) {
+        continue;
+      }
+
+      const mount = leftColumn.querySelector(`[${LEFT_TOGGLE_HOST_ATTR}="true"]`);
+      if (mount instanceof win.HTMLElement) {
+        positionLeftToggleMount(leftColumn, mount);
+      }
+    }
   }
 
   function applyStoredLayoutState({ persist = false } = {}) {
@@ -833,6 +914,7 @@ function createXTweaks(win, options = {}) {
     ensureLeftColumnToggleButton();
     ensureRightColumnToggleButton();
     applyStoredLayoutState({ persist: false });
+    queuePositionSync();
   }
 
   function start() {
@@ -842,8 +924,12 @@ function createXTweaks(win, options = {}) {
     ensureLeftColumnToggleButton();
     ensureRightColumnToggleButton();
     applyStoredLayoutState({ persist: false });
+    queuePositionSync();
     hiddenCount += processLiveChip(doc.body);
     updateState();
+
+    win.addEventListener("resize", queuePositionSync);
+    win.addEventListener("scroll", queuePositionSync, true);
 
     observer = new win.MutationObserver((mutations) => {
       for (const mutation of mutations) {
@@ -855,6 +941,7 @@ function createXTweaks(win, options = {}) {
       ensureLeftColumnToggleButton();
       ensureRightColumnToggleButton();
       applyStoredLayoutState({ persist: false });
+      queuePositionSync();
       updateState();
     });
 
@@ -866,6 +953,8 @@ function createXTweaks(win, options = {}) {
 
   function stop() {
     observer?.disconnect();
+    win.removeEventListener("resize", queuePositionSync);
+    win.removeEventListener("scroll", queuePositionSync, true);
   }
 
   return {
