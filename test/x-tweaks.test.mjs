@@ -68,7 +68,7 @@ async function runCase(name, fn) {
 }
 
 export async function runXTweaksTests() {
-  await runCase("fold left column by default, inject right toggle, and keep right column visible", async () => {
+  await runCase("fold both side columns by default and inject only the right toggle", async () => {
     const dom = createDom({
       body: `
         <div id="app-shell">
@@ -106,50 +106,14 @@ export async function runXTweaksTests() {
     const leftColumn = dom.window.document.getElementById("left-column");
 
     assert.equal(html.getAttribute("data-x-tweaks-left-column-folded"), "true");
-    assert.equal(html.getAttribute("data-x-tweaks-right-column-hidden"), "false");
+    assert.equal(html.getAttribute("data-x-tweaks-right-column-hidden"), "true");
     assert.equal(layout?.getAttribute("data-x-tweaks-layout-root"), "true");
     assert.equal(leftColumn?.getAttribute("data-x-tweaks-left-column"), "true");
     assert.equal(dom.window.document.getElementById("x-tweaks-left-column-toggle"), null);
-    assert.equal(rightToggle?.getAttribute("aria-label"), "Hide right column");
+    assert.equal(rightToggle?.getAttribute("aria-label"), "Show right column");
 
     assert.equal(dom.window.localStorage.getItem("x-tweaks:left-column-folded"), null);
     assert.equal(dom.window.localStorage.getItem("x-tweaks:right-column-visible"), null);
-
-    app.stop();
-    dom.window.close();
-  });
-
-  await runCase("replace X icon links with Weibo icons", async () => {
-    const dom = createDom({
-      body: `
-        <div id="layout">
-          <aside id="left-column">
-            <nav>
-              <a href="/home"><span>Home</span></a>
-            </nav>
-          </aside>
-          <main data-testid="primaryColumn">Primary</main>
-          <aside data-testid="sidebarColumn">Sidebar</aside>
-        </div>
-      `
-    });
-
-    dom.window.document.head.innerHTML = `
-      <link rel="icon" href="https://x.com/favicon.ico">
-      <link rel="apple-touch-icon" href="https://abs.twimg.com/responsive-web/client-web/icon-ios.77d25eba.png">
-    `;
-
-    const app = createXTweaks(dom.window);
-    app.start();
-
-    const iconLinks = Array.from(dom.window.document.head.querySelectorAll("link[rel~='icon']"));
-    const appleTouchIcon = dom.window.document.head.querySelector("link[rel='apple-touch-icon']");
-
-    assert.ok(iconLinks.length >= 1);
-    for (const link of iconLinks) {
-      assert.equal(link.href, "https://weibo.com/favicon.ico");
-    }
-    assert.equal(appleTouchIcon?.href, "https://weibo.com/favicon.ico");
 
     app.stop();
     dom.window.close();
@@ -205,15 +169,21 @@ export async function runXTweaksTests() {
     assert.equal(mount?.style.height, "57px");
     assert.ok(Number.parseInt(mount?.style.top || "0", 10) < 653);
     assert.equal(mount?.style.left, "1422px");
-    assert.equal(rightToggle?.getAttribute("aria-label"), "Hide right column");
-
-    rightToggle?.click();
+    assert.equal(rightToggle?.getAttribute("aria-label"), "Show right column");
 
     assert.equal(
       dom.window.document.documentElement.getAttribute("data-x-tweaks-right-column-hidden"),
       "true"
     );
-    assert.equal(dom.window.localStorage.getItem("x-tweaks:right-column-visible"), "false");
+    assert.equal(dom.window.localStorage.getItem("x-tweaks:right-column-visible"), null);
+
+    rightToggle?.click();
+
+    assert.equal(
+      dom.window.document.documentElement.getAttribute("data-x-tweaks-right-column-hidden"),
+      "false"
+    );
+    assert.equal(dom.window.localStorage.getItem("x-tweaks:right-column-visible"), "true");
 
     app.stop();
     dom.window.close();
@@ -250,7 +220,49 @@ export async function runXTweaksTests() {
     dom.window.close();
   });
 
-  await runCase("expand right column on home and collapse it on post route changes", async () => {
+  await runCase("inject folded left-column styles for centering and icon-only compose button", async () => {
+    const dom = createDom({
+      body: `
+        <div id="layout">
+          <header id="left-column">
+            <a href="/home">Logo</a>
+            <nav>
+              <a href="/home"><span>Home</span></a>
+            </nav>
+            <a href="/compose/post" data-testid="SideNav_NewTweet_Button"><div>Post</div></a>
+          </header>
+          <main data-testid="primaryColumn">Primary</main>
+          <aside data-testid="sidebarColumn">Sidebar</aside>
+        </div>
+      `
+    });
+
+    const app = createXTweaks(dom.window);
+    app.start();
+
+    const style = dom.window.document.getElementById("x-tweaks-styles");
+    const css = style?.textContent || "";
+
+    assert.match(
+      css,
+      /\[data-testid="SideNav_NewTweet_Button"\] > \* \{\s*display: none !important;/m
+    );
+    assert.match(
+      css,
+      /\[data-testid="SideNav_NewTweet_Button"\]::before \{\s*content: "" !important;/m
+    );
+    assert.match(
+      css,
+      /> \[data-testid="SideNav_NewTweet_Button"\] \{\s*margin-inline: auto !important;/m
+    );
+    assert.match(css, /width: 88px !important;/);
+    assert.match(css, /width: 56px !important;/);
+
+    app.stop();
+    dom.window.close();
+  });
+
+  await runCase("keep the right column collapsed by default across route changes", async () => {
     const dom = createDom({
       pathname: "/home",
       body: `
@@ -271,7 +283,7 @@ export async function runXTweaksTests() {
 
     assert.equal(
       dom.window.document.documentElement.getAttribute("data-x-tweaks-right-column-hidden"),
-      "false"
+      "true"
     );
 
     dom.window.history.pushState({}, "", "/someone/status/123");
@@ -288,15 +300,15 @@ export async function runXTweaksTests() {
 
     assert.equal(
       dom.window.document.documentElement.getAttribute("data-x-tweaks-right-column-hidden"),
-      "false"
+      "true"
     );
-    assert.equal(app.isRightColumnVisible(), true);
+    assert.equal(app.isRightColumnVisible(), false);
 
     app.stop();
     dom.window.close();
   });
 
-  await runCase("force post route to keep right column collapsed after a manual home-page toggle", async () => {
+  await runCase("persist a manual right-column toggle across route changes", async () => {
     const dom = createDom({
       pathname: "/home",
       body: `
@@ -314,20 +326,20 @@ export async function runXTweaksTests() {
 
     const app = createXTweaks(dom.window);
     app.start();
-    app.setRightColumnVisible(false);
+    app.setRightColumnVisible(true);
 
     assert.equal(
       dom.window.document.documentElement.getAttribute("data-x-tweaks-right-column-hidden"),
-      "true"
+      "false"
     );
-    assert.equal(dom.window.localStorage.getItem("x-tweaks:right-column-visible"), "false");
+    assert.equal(dom.window.localStorage.getItem("x-tweaks:right-column-visible"), "true");
 
     dom.window.history.pushState({}, "", "/home");
     await nextTick();
 
     assert.equal(
       dom.window.document.documentElement.getAttribute("data-x-tweaks-right-column-hidden"),
-      "true"
+      "false"
     );
 
     dom.window.history.pushState({}, "", "/someone/status/456");
@@ -335,7 +347,7 @@ export async function runXTweaksTests() {
 
     assert.equal(
       dom.window.document.documentElement.getAttribute("data-x-tweaks-right-column-hidden"),
-      "true"
+      "false"
     );
 
     dom.window.history.pushState({}, "", "/home");
@@ -376,15 +388,21 @@ export async function runXTweaksTests() {
     const rightToggle = dom.window.document.getElementById("x-tweaks-right-column-toggle");
 
     assert.equal(mount?.getAttribute("data-x-tweaks-right-column-toggle-mode"), "fallback");
-    assert.equal(rightToggle?.getAttribute("aria-label"), "Hide right column");
-
-    rightToggle?.click();
+    assert.equal(rightToggle?.getAttribute("aria-label"), "Show right column");
 
     assert.equal(
       dom.window.document.documentElement.getAttribute("data-x-tweaks-right-column-hidden"),
       "true"
     );
-    assert.equal(dom.window.localStorage.getItem("x-tweaks:right-column-visible"), "false");
+    assert.equal(dom.window.localStorage.getItem("x-tweaks:right-column-visible"), null);
+
+    rightToggle?.click();
+
+    assert.equal(
+      dom.window.document.documentElement.getAttribute("data-x-tweaks-right-column-hidden"),
+      "false"
+    );
+    assert.equal(dom.window.localStorage.getItem("x-tweaks:right-column-visible"), "true");
 
     app.stop();
     dom.window.close();
@@ -619,7 +637,7 @@ export async function runXTweaksTests() {
     const app = createXTweaks(dom.window);
     app.start();
     app.setLeftColumnFolded(false);
-    app.setRightColumnVisible(true);
+    app.setRightColumnVisible(false);
 
     dom.window.document.getElementById("layout-a")?.remove();
     dom.window.document.getElementById("shell")?.insertAdjacentHTML(
@@ -645,11 +663,11 @@ export async function runXTweaksTests() {
     );
     assert.equal(
       dom.window.document.documentElement.getAttribute("data-x-tweaks-right-column-hidden"),
-      "false"
+      "true"
     );
     assert.equal(dom.window.document.getElementById("left-column-b")?.getAttribute("data-x-tweaks-left-column"), "true");
     assert.equal(dom.window.document.getElementById("x-tweaks-left-column-toggle"), null);
-    assert.equal(dom.window.document.getElementById("x-tweaks-right-column-toggle")?.getAttribute("aria-label"), "Hide right column");
+    assert.equal(dom.window.document.getElementById("x-tweaks-right-column-toggle")?.getAttribute("aria-label"), "Show right column");
 
     app.stop();
     dom.window.close();

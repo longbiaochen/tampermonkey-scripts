@@ -18,7 +18,7 @@ function renderHomeFixture() {
       </aside>
       <main class="x-primary" data-testid="primaryColumn">
         <h2>Primary column</h2>
-        <p>Expected: left column folded by default, right column hidden, both toggles visible.</p>
+        <p>Expected: left column folded by default, right column hidden, only the right toggle visible.</p>
       </main>
       <aside class="x-sidebar" data-testid="sidebarColumn">
         <h3>Right column</h3>

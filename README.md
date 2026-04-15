@@ -8,8 +8,8 @@ Maintain multiple Tampermonkey userscripts in the `tampermonkey-scripts` reposit
 
 Tweaks for X/Twitter:
 
-- Fold the left column to icons by default, keep a left-edge toggle, and remember the user's choice.
-- Hide the right column by default and provide a sidebar toggle button in X's floating dock.
+- Fold the left column to icons by default without rendering a left toggle button, and remember the user's choice.
+- Hide the right column by default and provide a matching toggle button in X's floating dock.
 - Hide the "Live on X" chip on post detail pages.
 
 Install URL:

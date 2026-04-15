@@ -16,14 +16,13 @@ function createXTweaks(win, options = {}) {
   const RIGHT_TOGGLE_BUTTON_ID = "x-tweaks-right-column-toggle";
   const RIGHT_TOGGLE_HOST_ATTR = "data-x-tweaks-right-column-toggle-host";
   const RIGHT_TOGGLE_MODE_ATTR = "data-x-tweaks-right-column-toggle-mode";
+  const COMPOSE_HOST_ATTR = "data-x-tweaks-compose-host";
   const RIGHT_TOGGLE_FALLBACK_BUTTON_CLASS =
     "css-175oi2r r-6koalj r-eqz5dr r-16y2uox r-1pi2tsx r-1loqt21 r-o7ynqc r-6416eg r-1ny4l3l";
   const FLOATING_DOCK_TEST_ATTR = "data-x-tweaks-floating-dock";
   const STYLE_ID = "x-tweaks-styles";
   const LEFT_COLUMN_STORAGE_KEY = "x-tweaks:left-column-folded";
   const RIGHT_COLUMN_STORAGE_KEY = "x-tweaks:right-column-visible";
-  const WEIBO_ICON_URL = "https://weibo.com/favicon.ico";
-  const ICON_LINK_SELECTOR = "link[rel~='icon'], link[rel='apple-touch-icon']";
   const DEFAULT_DOCK_GAP = 12;
   const DOCK_MARGIN = 24;
 
@@ -65,7 +64,7 @@ function createXTweaks(win, options = {}) {
   }
 
   function readStoredRightColumnVisibility() {
-    return readStoredBool(RIGHT_COLUMN_STORAGE_KEY, true);
+    return readStoredBool(RIGHT_COLUMN_STORAGE_KEY, false);
   }
 
   function readStoredLeftColumnFolded() {
@@ -101,12 +100,12 @@ function createXTweaks(win, options = {}) {
 
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} {
         position: relative !important;
-        width: 76px !important;
-        min-width: 76px !important;
-        max-width: 76px !important;
+        width: 88px !important;
+        min-width: 88px !important;
+        max-width: 88px !important;
         align-items: center !important;
         overflow: visible !important;
-        flex: 0 0 76px !important;
+        flex: 0 0 88px !important;
       }
 
       html[${LEFT_COLUMN_FOLDED_ATTR}="false"] ${LEFT_COLUMN_SELECTOR} {
@@ -121,9 +120,9 @@ function createXTweaks(win, options = {}) {
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} > div > div,
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} > div > div > div {
         align-items: center !important;
-        width: 76px !important;
-        min-width: 76px !important;
-        max-width: 76px !important;
+        width: 88px !important;
+        min-width: 88px !important;
+        max-width: 88px !important;
       }
 
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} a,
@@ -131,13 +130,29 @@ function createXTweaks(win, options = {}) {
         justify-content: center !important;
       }
 
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} > a,
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} > button,
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} > [data-testid="SideNav_AccountSwitcher_Button"],
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} > [data-testid="SideNav_NewTweet_Button"] {
+        margin-inline: auto !important;
+      }
+
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} [${COMPOSE_HOST_ATTR}="true"] {
+        width: 56px !important;
+        min-width: 56px !important;
+        max-width: 56px !important;
+        align-items: center !important;
+        margin-inline: auto !important;
+      }
+
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} nav a,
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} nav button,
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} [data-testid="SideNav_AccountSwitcher_Button"],
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} [data-testid="SideNav_NewTweet_Button"] {
-        width: 52px !important;
-        min-width: 52px !important;
-        max-width: 52px !important;
+        width: 56px !important;
+        min-width: 56px !important;
+        max-width: 56px !important;
+        min-height: 56px !important;
       }
 
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} nav a span:not([aria-hidden="true"]),
@@ -163,11 +178,45 @@ function createXTweaks(win, options = {}) {
       }
 
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} [data-testid="SideNav_NewTweet_Button"] {
-        width: 52px !important;
-        min-width: 52px !important;
-        max-width: 52px !important;
+        width: 56px !important;
+        min-width: 56px !important;
+        max-width: 56px !important;
+        height: 56px !important;
         padding-inline: 0 !important;
         justify-content: center !important;
+        align-items: center !important;
+        position: relative !important;
+        background-color: #1d9bf0 !important;
+        color: #ffffff !important;
+        border-radius: 9999px !important;
+      }
+
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} [data-testid="SideNav_AccountSwitcher_Button"] {
+        height: 56px !important;
+        padding-inline: 0 !important;
+        overflow: hidden !important;
+      }
+
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} [data-testid="SideNav_NewTweet_Button"] > * {
+        display: none !important;
+      }
+
+      html[${LEFT_COLUMN_FOLDED_ATTR}="true"] ${LEFT_COLUMN_SELECTOR} [data-testid="SideNav_NewTweet_Button"]::before {
+        content: "" !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 24px !important;
+        height: 24px !important;
+        background-color: currentColor !important;
+        -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='white' d='M17.53 2.47a.75.75 0 0 1 1.06 0l2.88 2.88a.75.75 0 0 1 0 1.06l-1.94 1.94-3.94-3.94 1.94-1.94ZM14.53 5.47 4.25 15.75V19.5H8l10.28-10.28-3.75-3.75Zm-2.03 13.28a.75.75 0 0 1 0 1.5h-8a.75.75 0 0 1 0-1.5h8Zm5.25-6.25a.75.75 0 0 1 .75.75v2h2a.75.75 0 0 1 0 1.5h-2v2a.75.75 0 0 1-1.5 0v-2h-2a.75.75 0 0 1 0-1.5h2v-2a.75.75 0 0 1 .75-.75Z'/%3E%3C/svg%3E") !important;
+        mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='white' d='M17.53 2.47a.75.75 0 0 1 1.06 0l2.88 2.88a.75.75 0 0 1 0 1.06l-1.94 1.94-3.94-3.94 1.94-1.94ZM14.53 5.47 4.25 15.75V19.5H8l10.28-10.28-3.75-3.75Zm-2.03 13.28a.75.75 0 0 1 0 1.5h-8a.75.75 0 0 1 0-1.5h8Zm5.25-6.25a.75.75 0 0 1 .75.75v2h2a.75.75 0 0 1 0 1.5h-2v2a.75.75 0 0 1-1.5 0v-2h-2a.75.75 0 0 1 0-1.5h2v-2a.75.75 0 0 1 .75-.75Z'/%3E%3C/svg%3E") !important;
+        -webkit-mask-repeat: no-repeat !important;
+        mask-repeat: no-repeat !important;
+        -webkit-mask-position: center !important;
+        mask-position: center !important;
+        -webkit-mask-size: contain !important;
+        mask-size: contain !important;
       }
 
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] {
@@ -175,7 +224,7 @@ function createXTweaks(win, options = {}) {
       }
 
       html[${LEFT_COLUMN_FOLDED_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] > main {
-        width: calc(100% - 76px) !important;
+        width: calc(100% - 88px) !important;
         max-width: none !important;
         min-width: 0 !important;
         flex: 1 1 auto !important;
@@ -186,7 +235,7 @@ function createXTweaks(win, options = {}) {
       }
 
       html[${RIGHT_COLUMN_HIDDEN_ATTR}="true"] [${LAYOUT_ROOT_ATTR}="true"] > main {
-        width: calc(100% - 76px) !important;
+        width: calc(100% - 88px) !important;
         max-width: none !important;
         min-width: 0 !important;
         flex: 1 1 auto !important;
@@ -275,35 +324,6 @@ function createXTweaks(win, options = {}) {
     `;
 
     doc.head.appendChild(style);
-  }
-
-  function ensureWeiboIconLink(rel) {
-    let link = doc.head.querySelector(`link[rel='${rel}']`);
-    if (!(link instanceof win.HTMLLinkElement)) {
-      link = doc.createElement("link");
-      link.rel = rel;
-      doc.head.appendChild(link);
-    }
-
-    if (link.href !== WEIBO_ICON_URL) {
-      link.href = WEIBO_ICON_URL;
-    }
-  }
-
-  function ensureWeiboIcons() {
-    if (!(doc.head instanceof win.HTMLHeadElement)) {
-      return;
-    }
-
-    const existingLinks = Array.from(doc.head.querySelectorAll(ICON_LINK_SELECTOR));
-    for (const link of existingLinks) {
-      if (link instanceof win.HTMLLinkElement && link.href !== WEIBO_ICON_URL) {
-        link.href = WEIBO_ICON_URL;
-      }
-    }
-
-    ensureWeiboIconLink("icon");
-    ensureWeiboIconLink("apple-touch-icon");
   }
 
   function findLayoutRoot(sidebar) {
@@ -403,7 +423,7 @@ function createXTweaks(win, options = {}) {
       if (layoutRoot instanceof win.HTMLElement) {
         layoutRoot.setAttribute(LAYOUT_ROOT_ATTR, "true");
         const leftColumn = findLeftColumn(layoutRoot);
-        leftColumn?.setAttribute(LEFT_COLUMN_ATTR, "true");
+        markLeftColumn(leftColumn);
       }
     }
 
@@ -420,8 +440,26 @@ function createXTweaks(win, options = {}) {
       const leftColumn = findLeftColumn(layoutRoot);
       if (leftColumn instanceof win.HTMLElement) {
         layoutRoot.setAttribute(LAYOUT_ROOT_ATTR, "true");
-        leftColumn.setAttribute(LEFT_COLUMN_ATTR, "true");
+        markLeftColumn(leftColumn);
       }
+    }
+  }
+
+  function markLeftColumn(leftColumn) {
+    if (!(leftColumn instanceof win.HTMLElement)) {
+      return;
+    }
+
+    leftColumn.setAttribute(LEFT_COLUMN_ATTR, "true");
+
+    const composeButton = leftColumn.querySelector('[data-testid="SideNav_NewTweet_Button"]');
+    const composeHost = composeButton?.parentElement;
+    if (
+      composeHost instanceof win.HTMLElement &&
+      composeHost !== leftColumn &&
+      !composeHost.hasAttribute(COMPOSE_HOST_ATTR)
+    ) {
+      composeHost.setAttribute(COMPOSE_HOST_ATTR, "true");
     }
   }
 
@@ -476,14 +514,6 @@ function createXTweaks(win, options = {}) {
     applyRightColumnVisible(visible, { persist: true });
   }
 
-  function defaultRightColumnVisibilityForPath(pathname = getPathname()) {
-    return !STATUS_PATH_RE.test(pathname);
-  }
-
-  function syncRightColumnToRoute(pathname = getPathname()) {
-    applyRightColumnVisible(defaultRightColumnVisibilityForPath(pathname), { persist: false });
-  }
-
   function handleRouteChange() {
     const pathname = getPathname();
     if (pathname === lastRoutePathname) {
@@ -491,8 +521,9 @@ function createXTweaks(win, options = {}) {
     }
 
     lastRoutePathname = pathname;
-    syncRightColumnToRoute(pathname);
+    applyRightColumnVisible(readStoredRightColumnVisibility(), { persist: false });
     hiddenCount += processLiveChip(doc.body);
+    hiddenCount += processBookmarksEmptyState(doc.body);
     updateState();
   }
 
@@ -706,7 +737,7 @@ function createXTweaks(win, options = {}) {
     }
 
     button.addEventListener("click", () => {
-      setRightColumnVisible(!readStoredRightColumnVisibility());
+      setRightColumnVisible(!readCurrentRightColumnVisibility());
     });
 
     inner.appendChild(button);
@@ -730,7 +761,7 @@ function createXTweaks(win, options = {}) {
     button.className = RIGHT_TOGGLE_FALLBACK_BUTTON_CLASS;
     button.setAttribute("style", "align-items: center; justify-content: center;");
     button.addEventListener("click", () => {
-      setRightColumnVisible(!readStoredRightColumnVisibility());
+      setRightColumnVisible(!readCurrentRightColumnVisibility());
     });
 
     mount.appendChild(button);
@@ -914,23 +945,21 @@ function createXTweaks(win, options = {}) {
       return;
     }
 
-    ensureWeiboIcons();
     markLayoutRoots(node);
     hiddenCount += processLiveChip(node);
     hiddenCount += processBookmarksEmptyState(node);
     ensureRightColumnToggleButton();
     applyLeftColumnFolded(readStoredLeftColumnFolded(), { persist: false });
-    syncRightColumnToRoute();
+    applyRightColumnVisible(readStoredRightColumnVisibility(), { persist: false });
   }
 
   function start() {
     ensureStyles();
-    ensureWeiboIcons();
     markLayoutRoots(doc.body);
     ensureRightColumnToggleButton();
     applyLeftColumnFolded(readStoredLeftColumnFolded(), { persist: false });
     lastRoutePathname = getPathname();
-    syncRightColumnToRoute(lastRoutePathname);
+    applyRightColumnVisible(readStoredRightColumnVisibility(), { persist: false });
     hiddenCount += processLiveChip(doc.body);
     hiddenCount += processBookmarksEmptyState(doc.body);
     updateState();
@@ -944,7 +973,7 @@ function createXTweaks(win, options = {}) {
 
       ensureRightColumnToggleButton();
       applyLeftColumnFolded(readStoredLeftColumnFolded(), { persist: false });
-      syncRightColumnToRoute();
+      applyRightColumnVisible(readStoredRightColumnVisibility(), { persist: false });
       handleRouteChange();
       updateState();
     });
