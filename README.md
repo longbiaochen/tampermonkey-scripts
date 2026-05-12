@@ -8,7 +8,7 @@ Maintain multiple Tampermonkey userscripts in the `tampermonkey-scripts` reposit
 
 Tweaks for X/Twitter:
 
-- Keep the left column untouched.
+- Fold the left column to an icon-only rail by default, matching the compact Chat item treatment.
 - Keep the right column visible by default and provide a matching toggle button in X's floating dock.
 - Hide the "Live on X" chip on post detail pages.
 - Hide the bookmarks empty-state block on `https://x.com/i/bookmarks`.

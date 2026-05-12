@@ -68,7 +68,7 @@ async function runCase(name, fn) {
 }
 
 export async function runXTweaksTests() {
-  await runCase("keep the left column untouched while showing the right column by default", async () => {
+  await runCase("fold the left column while showing the right column by default", async () => {
     const dom = createDom({
       body: `
         <div id="app-shell">
@@ -99,8 +99,8 @@ export async function runXTweaksTests() {
     const leftColumn = dom.window.document.getElementById("left-column");
 
     assert.equal(html.getAttribute("data-x-tweaks-right-column-hidden"), "false");
-    assert.equal(html.getAttribute("data-x-tweaks-left-column-folded"), null);
-    assert.equal(leftColumn?.getAttribute("data-x-tweaks-left-column"), null);
+    assert.equal(html.getAttribute("data-x-tweaks-left-column-folded"), "true");
+    assert.equal(leftColumn?.getAttribute("data-x-tweaks-left-column"), "true");
     assert.equal(rightToggle?.getAttribute("aria-label"), "Hide right column");
     assert.equal(dom.window.localStorage.getItem("x-tweaks:left-column-folded"), null);
     assert.equal(dom.window.localStorage.getItem("x-tweaks:right-column-visible"), "true");
@@ -108,6 +108,56 @@ export async function runXTweaksTests() {
       dom.window.localStorage.getItem("x-tweaks:right-column-default-open-migrated-v1"),
       "true"
     );
+
+    app.stop();
+    dom.window.close();
+  });
+
+  await runCase("inject folded left-column styles with Chat-like icon-only nav labels", async () => {
+    const dom = createDom({
+      body: `
+        <div id="layout">
+          <header id="left-column">
+            <nav>
+              <a href="/home"><span>Home</span></a>
+              <a href="/i/chat" data-testid="AppTabBar_Messages_Link">
+                <svg aria-hidden="true"></svg><span>Chat</span>
+              </a>
+            </nav>
+            <a href="/compose/post" data-testid="SideNav_NewTweet_Button"><div>Post</div></a>
+          </header>
+          <main data-testid="primaryColumn">Primary</main>
+          <aside data-testid="sidebarColumn">Sidebar</aside>
+        </div>
+      `
+    });
+
+    const app = createXTweaks(dom.window);
+    app.start();
+
+    const style = dom.window.document.getElementById("x-tweaks-styles");
+    const css = style?.textContent || "";
+
+    assert.equal(
+      dom.window.document.documentElement.getAttribute("data-x-tweaks-left-column-folded"),
+      "true"
+    );
+    assert.equal(
+      dom.window.document.getElementById("left-column")?.getAttribute("data-x-tweaks-left-column"),
+      "true"
+    );
+    assert.match(css, /width: 88px !important;/);
+    assert.match(css, /width: 56px !important;/);
+    assert.match(css, /\[data-testid="AppTabBar_Messages_Link"\] span:last-child/);
+    assert.match(
+      css,
+      /\[data-testid="SideNav_NewTweet_Button"\] > \* \{\s*display: none !important;/m
+    );
+    assert.match(
+      css,
+      /\[data-testid="SideNav_NewTweet_Button"\]::before \{\s*content: "" !important;/m
+    );
+    assert.match(css, /#x-tweaks-right-column-toggle svg \{\s*width: 24px;\s*height: 24px;/m);
 
     app.stop();
     dom.window.close();
@@ -444,7 +494,11 @@ export async function runXTweaksTests() {
     assert.equal(dom.window.document.getElementById("dynamic-chip")?.style.display, "none");
     assert.equal(
       dom.window.document.documentElement.getAttribute("data-x-tweaks-left-column-folded"),
-      null
+      "true"
+    );
+    assert.equal(
+      dom.window.document.getElementById("left-column")?.getAttribute("data-x-tweaks-left-column"),
+      "true"
     );
 
     app.stop();
@@ -564,7 +618,7 @@ export async function runXTweaksTests() {
     );
     assert.equal(
       dom.window.document.getElementById("left-column-b")?.getAttribute("data-x-tweaks-left-column"),
-      null
+      "true"
     );
 
     app.stop();
