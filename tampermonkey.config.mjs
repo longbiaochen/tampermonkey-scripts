@@ -12,7 +12,7 @@ const scripts = [
     output: "dist/x-tweaks.user.js",
     homepagePath: "#x-tweaks",
     description:
-      "Fold the left column to icons with a toggle, hide the right column from X's floating dock by default, and remove the \"Live on X\" chip on post detail pages.",
+      "Keep the right column visible by default, preserve its floating-dock toggle, keep the left column untouched, and remove the \"Live on X\" chip on post detail pages.",
     namespace: "http://tampermonkey.net/",
     author: "Longbiao CHEN",
     match: ["https://x.com/*", "https://twitter.com/*"],

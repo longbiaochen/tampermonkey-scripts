@@ -48,6 +48,8 @@ function assertRepoCleanEnough(initialFiles, currentFiles) {
 const args = parseArgs(process.argv.slice(2));
 const profile = String(args.profile || "Default");
 const skipPush = Boolean(args["skip-push"]);
+const chromeRoot = args["chrome-root"] ? String(args["chrome-root"]) : "";
+const chromeBinary = args["chrome-binary"] ? String(args["chrome-binary"]) : "";
 
 const initialFiles = getChangedFiles();
 const previousVersion = await getPackageVersion();
@@ -73,5 +75,7 @@ runStreaming("node", [
   "--profile",
   profile,
   "--wait-version",
-  nextVersion
+  nextVersion,
+  ...(chromeRoot ? ["--chrome-root", chromeRoot] : []),
+  ...(chromeBinary ? ["--chrome-binary", chromeBinary] : [])
 ]);

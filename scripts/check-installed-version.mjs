@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 
 import {
+  getChromeRoot,
   getTargetScript,
   getTampermonkeyStorageDir,
   listTampermonkeyStorageFiles,
@@ -10,6 +11,9 @@ import {
 const args = parseArgs(process.argv.slice(2));
 const profile = String(args.profile || "Default");
 const scriptId = String(args.script || "x-tweaks");
+const chromeOptions = {
+  chromeRoot: args["chrome-root"]
+};
 
 let targetScript;
 try {
@@ -19,11 +23,12 @@ try {
   process.exit(1);
 }
 
-const storageFiles = listTampermonkeyStorageFiles(profile);
+const storageFiles = listTampermonkeyStorageFiles(profile, chromeOptions);
 if (storageFiles.length === 0) {
   console.error(
     `Tampermonkey storage not found for Chrome profile "${profile}" at ${getTampermonkeyStorageDir(
-      profile
+      profile,
+      chromeOptions
     )}.`
   );
   process.exit(1);
@@ -43,7 +48,11 @@ while (match) {
 }
 
 if (versions.length === 0) {
-  console.error(`${targetScript.name} is not currently installed in Chrome profile "${profile}".`);
+  console.error(
+    `${targetScript.name} is not currently installed in Chrome profile "${profile}" under ${getChromeRoot(
+      chromeOptions
+    )}.`
+  );
   process.exit(2);
 }
 

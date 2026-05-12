@@ -8,9 +8,10 @@ Maintain multiple Tampermonkey userscripts in the `tampermonkey-scripts` reposit
 
 Tweaks for X/Twitter:
 
-- Fold the left column to icons by default without rendering a left toggle button, and remember the user's choice.
-- Hide the right column by default and provide a matching toggle button in X's floating dock.
+- Keep the left column untouched.
+- Keep the right column visible by default and provide a matching toggle button in X's floating dock.
 - Hide the "Live on X" chip on post detail pages.
+- Hide the bookmarks empty-state block on `https://x.com/i/bookmarks`.
 
 Install URL:
 
@@ -91,6 +92,22 @@ node scripts/check-installed-version.mjs --profile Default
 ```
 
 The `npm run chrome:check-installed` shortcut still defaults to `Default`.
+
+For the managed Chrome for Testing runtime used by `chrome-use`, point the scripts at the managed user-data dir instead of the regular `~/Library/Application Support/Google/Chrome` root:
+
+```bash
+node scripts/check-installed-version.mjs \
+  --profile Default \
+  --chrome-root "$HOME/.chrome-use/browser-data/stable"
+
+node scripts/trigger-chrome-update.mjs \
+  --profile Default \
+  --chrome-root "$HOME/.chrome-use/browser-data/stable"
+```
+
+When `--chrome-root` points at `~/.chrome-use/browser-data/...`, the helper auto-detects the installed `Chrome for Testing` binary under `~/.chrome-use/browsers/chrome-for-testing/`.
+
+One-time prerequisite for Chrome MV3: open Tampermonkey's extension details page and enable `Allow User Scripts`. Without that toggle, Tampermonkey can store the script but Chrome will not inject it into matching pages.
 
 ## Development
 

@@ -18,7 +18,7 @@ function renderHomeFixture() {
       </aside>
       <main class="x-primary" data-testid="primaryColumn">
         <h2>Primary column</h2>
-        <p>Expected: left column folded by default, right column hidden, only the right toggle visible.</p>
+        <p>Expected: left column stays expanded, right column visible, and the right toggle matches the native dock buttons.</p>
       </main>
       <aside class="x-sidebar" data-testid="sidebarColumn">
         <h3>Right column</h3>
@@ -62,7 +62,6 @@ function refreshState() {
 
 function startApp() {
   app?.stop();
-  document.getElementById("x-tweaks-left-column-toggle")?.remove();
   document.getElementById("x-tweaks-right-column-toggle")?.remove();
   app = createXTweaks(window, { pathname: debugPathname });
   app.start();
