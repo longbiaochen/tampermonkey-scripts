@@ -58,6 +58,30 @@ function renderStatusFixture() {
   `;
 }
 
+function renderChatFixture() {
+  debugPathname = "/i/chat";
+  fixture.innerHTML = `
+    <div class="x-shell" id="debug-layout">
+      <aside class="x-left" id="debug-left-column">
+        <nav>
+          <a href="/home"><span class="x-icon" aria-hidden="true">H</span><span>Home</span></a>
+          <a href="/explore"><span class="x-icon" aria-hidden="true">E</span><span>Explore</span></a>
+          <a href="/i/chat" data-testid="AppTabBar_Messages_Link"><span class="x-icon" aria-hidden="true">C</span><span>Chat</span></a>
+        </nav>
+      </aside>
+      <section class="x-chat-list" id="debug-chat-list">
+        <a class="x-chat-row" href="/messages/1"><img alt=""><span>Shared group<br>Latest reply preview</span></a>
+        <a class="x-chat-row" href="/messages/2"><img alt=""><span>Alina Bell<br>Conversation preview</span></a>
+        <a class="x-chat-row" href="/messages/3"><img alt=""><span>Irene<br>Another preview</span></a>
+      </section>
+      <main class="x-primary x-chat-main">
+        <h2>Start Conversation</h2>
+        <p>Expected: only the left navigation rail folds; the chat list remains a normal column.</p>
+      </main>
+    </div>
+  `;
+}
+
 function refreshState() {
   statePanel.textContent = JSON.stringify(window.__xTweaksState, null, 2);
 }
@@ -73,6 +97,11 @@ function startApp() {
 
 document.getElementById("render-home").addEventListener("click", () => {
   renderHomeFixture();
+  startApp();
+});
+
+document.getElementById("render-chat").addEventListener("click", () => {
+  renderChatFixture();
   startApp();
 });
 

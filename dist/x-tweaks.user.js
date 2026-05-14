@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         X Tweaks
 // @namespace    http://tampermonkey.net/
-// @version      0.3.41
+// @version      0.3.42
 // @description  Fold X's left column to a Chat-style icon rail with an expand button, keep the right column toggle, and remove the "Live on X" chip.
 // @author       Longbiao CHEN
 // @homepageURL  https://github.com/longbiaochen/tampermonkey-scripts#x-tweaks
@@ -96,7 +96,15 @@ function createXTweaks(win, options = {}) {
   }
 
   function shouldApplyLayoutTweaks() {
-    return !isChatPage() && (isFeatureEnabled("foldLeftColumn") || isFeatureEnabled("rightColumnToggle"));
+    return shouldApplyLeftColumnTweaks() || shouldApplyRightColumnTweaks();
+  }
+
+  function shouldApplyLeftColumnTweaks() {
+    return isFeatureEnabled("foldLeftColumn");
+  }
+
+  function shouldApplyRightColumnTweaks() {
+    return !isChatPage() && isFeatureEnabled("rightColumnToggle");
   }
 
   function getPathname() {
@@ -820,9 +828,6 @@ function createXTweaks(win, options = {}) {
   }
 
   function createLeftToggleButton() {
-    const host = doc.createElement("div");
-    host.setAttribute(LEFT_TOGGLE_HOST_ATTR, "true");
-
     const button = doc.createElement("button");
     button.id = LEFT_TOGGLE_BUTTON_ID;
     button.type = "button";
@@ -833,8 +838,13 @@ function createXTweaks(win, options = {}) {
       button.blur();
     });
 
-    host.appendChild(button);
-    updateLeftColumnButton();
+    return button;
+  }
+
+  function createLeftToggleHost() {
+    const host = doc.createElement("div");
+    host.setAttribute(LEFT_TOGGLE_HOST_ATTR, "true");
+    host.appendChild(createLeftToggleButton());
     return host;
   }
 
@@ -856,10 +866,14 @@ function createXTweaks(win, options = {}) {
 
     let host = doc.querySelector(`[${LEFT_TOGGLE_HOST_ATTR}="true"]`);
     if (!(host instanceof win.HTMLElement)) {
-      host = createLeftToggleButton();
+      host = createLeftToggleHost();
       doc.body.appendChild(host);
     } else if (host.parentElement !== doc.body) {
       doc.body.appendChild(host);
+    }
+
+    if (!(host.querySelector(`#${LEFT_TOGGLE_BUTTON_ID}`) instanceof win.HTMLButtonElement)) {
+      host.appendChild(createLeftToggleButton());
     }
 
     positionLeftColumnToggleButton();
@@ -945,6 +959,14 @@ function createXTweaks(win, options = {}) {
     updateState();
   }
 
+  function clearRightColumnTweaks() {
+    for (const node of Array.from(doc.querySelectorAll(`[${RIGHT_TOGGLE_HOST_ATTR}="true"]`))) {
+      node.remove();
+    }
+    doc.documentElement.removeAttribute(RIGHT_COLUMN_HIDDEN_ATTR);
+    updateState();
+  }
+
   function handleRouteChange() {
     const pathname = getPathname();
     if (pathname === lastRoutePathname) {
@@ -952,19 +974,17 @@ function createXTweaks(win, options = {}) {
     }
 
     lastRoutePathname = pathname;
-    if (isChatPage()) {
-      clearLayoutTweaks();
-      return;
-    }
-
     if (shouldApplyLayoutTweaks()) {
       ensureStyles();
       markLayoutRoots(doc.body);
     }
-    if (isFeatureEnabled("foldLeftColumn")) {
+    if (!shouldApplyRightColumnTweaks()) {
+      clearRightColumnTweaks();
+    }
+    if (shouldApplyLeftColumnTweaks()) {
       applyLeftColumnFolded(readStoredLeftColumnFolded(), { persist: false });
     }
-    if (isFeatureEnabled("rightColumnToggle")) {
+    if (shouldApplyRightColumnTweaks()) {
       applyRightColumnVisible(readStoredRightColumnVisibility(), { persist: false });
     }
     if (isFeatureEnabled("hideLiveChip")) {
@@ -1387,11 +1407,11 @@ function createXTweaks(win, options = {}) {
     if (isFeatureEnabled("hideBookmarksEmptyState")) {
       hiddenCount += processBookmarksEmptyState(node);
     }
-    if (!isChatPage() && isFeatureEnabled("rightColumnToggle")) {
+    if (shouldApplyRightColumnTweaks()) {
       ensureRightColumnToggleButton();
       applyRightColumnVisible(readStoredRightColumnVisibility(), { persist: false });
     }
-    if (!isChatPage() && isFeatureEnabled("foldLeftColumn")) {
+    if (shouldApplyLeftColumnTweaks()) {
       applyLeftColumnFolded(readStoredLeftColumnFolded(), { persist: false });
     }
   }
@@ -1404,14 +1424,14 @@ function createXTweaks(win, options = {}) {
       ensureStyles();
       markLayoutRoots(doc.body);
     }
-    if (!isChatPage() && isFeatureEnabled("rightColumnToggle")) {
+    if (shouldApplyRightColumnTweaks()) {
       ensureRightColumnToggleButton();
     }
-    if (!isChatPage() && isFeatureEnabled("foldLeftColumn")) {
+    if (shouldApplyLeftColumnTweaks()) {
       applyLeftColumnFolded(readStoredLeftColumnFolded(), { persist: false });
     }
     lastRoutePathname = getPathname();
-    if (!isChatPage() && isFeatureEnabled("rightColumnToggle")) {
+    if (shouldApplyRightColumnTweaks()) {
       applyRightColumnVisible(readStoredRightColumnVisibility(), { persist: false });
     }
     if (isFeatureEnabled("hideLiveChip")) {
@@ -1429,11 +1449,11 @@ function createXTweaks(win, options = {}) {
         }
       }
 
-      if (!isChatPage() && isFeatureEnabled("rightColumnToggle")) {
+      if (shouldApplyRightColumnTweaks()) {
         ensureRightColumnToggleButton();
         applyRightColumnVisible(readStoredRightColumnVisibility(), { persist: false });
       }
-      if (!isChatPage() && isFeatureEnabled("foldLeftColumn")) {
+      if (shouldApplyLeftColumnTweaks()) {
         applyLeftColumnFolded(readStoredLeftColumnFolded(), { persist: false });
       }
       handleRouteChange();
@@ -1447,10 +1467,10 @@ function createXTweaks(win, options = {}) {
 
     if (isFeatureEnabled("foldLeftColumn") || isFeatureEnabled("rightColumnToggle")) {
       resizeHandler = () => {
-        if (isFeatureEnabled("rightColumnToggle")) {
+        if (shouldApplyRightColumnTweaks()) {
           ensureRightColumnToggleButton();
         }
-        if (isFeatureEnabled("foldLeftColumn")) {
+        if (shouldApplyLeftColumnTweaks()) {
           positionLeftColumnToggleButton();
         }
       };

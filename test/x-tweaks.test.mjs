@@ -325,7 +325,7 @@ export async function runXTweaksTests() {
     dom.window.close();
   });
 
-  await runCase("leave the native Chat layout untouched", async () => {
+  await runCase("fold the native Chat rail without marking the conversation list", async () => {
     const dom = createDom({
       pathname: "/i/chat",
       body: `
@@ -340,6 +340,10 @@ export async function runXTweaksTests() {
               </nav>
             </div>
           </header>
+          <section id="chat-list">
+            <a href="/messages/1"><img alt="Avatar A"></a>
+            <a href="/messages/2"><img alt="Avatar B"></a>
+          </section>
           <main id="chat-main">Chat</main>
         </div>
       `
@@ -350,12 +354,23 @@ export async function runXTweaksTests() {
 
     assert.equal(
       dom.window.document.getElementById("left-column")?.getAttribute("data-x-tweaks-left-column"),
-      null
+      "true"
     );
-    assert.equal(dom.window.document.getElementById("x-tweaks-left-column-toggle"), null);
-    assert.equal(dom.window.document.getElementById("x-tweaks-right-column-toggle"), null);
+    assert.equal(
+      dom.window.document.getElementById("chat-list")?.hasAttribute("data-x-tweaks-left-column"),
+      false
+    );
     assert.equal(
       dom.window.document.documentElement.getAttribute("data-x-tweaks-left-column-folded"),
+      "true"
+    );
+    assert.equal(
+      dom.window.document.getElementById("x-tweaks-left-column-toggle")?.getAttribute("aria-label"),
+      "Expand left column"
+    );
+    assert.equal(dom.window.document.getElementById("x-tweaks-right-column-toggle"), null);
+    assert.equal(
+      dom.window.document.documentElement.getAttribute("data-x-tweaks-right-column-hidden"),
       null
     );
 
