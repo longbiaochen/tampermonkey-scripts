@@ -35,13 +35,15 @@
 
 - `npm run validate` is the minimum source/build gate.
 - For release/update tasks, prove both the raw GitHub userscript version and installed Tampermonkey version.
-- Browser verification should use official in-app browser for unauthenticated debug harness pages; use the official `Chrome` plugin only when verifying real installed userscript state.
+- Browser verification should use the official in-app browser for unauthenticated debug harness pages; use the official `Chrome` plugin only when verifying real installed userscript state in the default Chrome profile.
+- When a userscript change is ready but Chrome/Tampermonkey auto-install is brittle or not requested, provide the GitHub raw userscript URL as a clickable Markdown link so the operator can open it in Chrome and install manually.
 
 ## Release/Deploy
 
 - Install URLs point at raw GitHub files in `dist/`.
 - Tampermonkey updates only when `@version` increases.
 - `npm run release:x-tweaks` is the full publish/update/proof path for `x-tweaks`.
+- Manual install handoff for `x-tweaks`: [`https://raw.githubusercontent.com/longbiaochen/tampermonkey-scripts/main/dist/x-tweaks.user.js`](https://raw.githubusercontent.com/longbiaochen/tampermonkey-scripts/main/dist/x-tweaks.user.js).
 
 ## Guardrails
 
@@ -54,9 +56,5 @@
 - The shared version source is `package.json`.
 
 ## Browser Automation Constraint
-- 交互类浏览器操作默认仅允许官方 `Chrome` 插件和 In-app Browser（`browser-use` / IAB）作为主通道。
-  - 涉及签名登录态、Cookies、扩展、既有 Chrome 标签页、鉴权流程、可复用会话：使用官方 `Chrome` 插件。
-  - 视觉验证、内部调试、未登录本地/公开页面、仅做渲染检查：使用 In-app Browser。
-- 禁止将 `Playwright`、`Chromium`、`Chrome for Testing`、`chrome-use`（含 `chrome-auth`、`chrome-inspect`）作为 Codex 的浏览器交互/验收路径。
-- 若官方入口不可用或不可达，必须先报告阻塞并等待，不得改用旧工具兜底。
-
+- Follow the global `~/.codex/AGENTS.md` official browser/GUI policy: Browser plugin for unauthenticated local/public rendering, Chrome plugin for signed-in/default-profile browser state, and Computer Use only for native desktop boundaries.
+- Keep only repo-specific verification surfaces here; do not copy the full global policy block into this runbook.

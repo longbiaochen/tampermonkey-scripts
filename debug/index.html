@@ -68,6 +68,51 @@
         padding: 24px;
       }
 
+      .x-left {
+        width: 240px;
+        min-width: 240px;
+        padding: 8px 0;
+      }
+
+      .x-left nav {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .x-left a,
+      .native-button {
+        min-height: 56px;
+        border-radius: 9999px;
+        color: #0f1419;
+        text-decoration: none;
+      }
+
+      .x-left a {
+        display: inline-flex;
+        align-items: center;
+        gap: 18px;
+        width: max-content;
+        padding: 0 16px;
+        font-size: 20px;
+        font-weight: 500;
+      }
+
+      .x-left a:hover,
+      .native-button:hover {
+        background: rgba(15, 20, 25, 0.1);
+      }
+
+      .x-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        font-size: 18px;
+        line-height: 1;
+      }
+
       .x-primary,
       .x-sidebar {
         background: white;
@@ -82,6 +127,27 @@
 
       .x-sidebar {
         width: 320px;
+      }
+
+      #dock {
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .native-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        min-width: 56px;
+        border: 1px solid #d7e0e8;
+        background: white;
+        box-shadow: 0 8px 24px rgba(15, 20, 25, 0.12);
+        cursor: pointer;
       }
 
       .chip {

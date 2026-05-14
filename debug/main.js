@@ -12,13 +12,14 @@ function renderHomeFixture() {
     <div class="x-shell" id="debug-layout">
       <aside class="x-left" id="debug-left-column">
         <nav>
-          <a href="/home"><span>Home</span></a>
-          <a href="/explore"><span>Explore</span></a>
+          <a href="/home"><span class="x-icon" aria-hidden="true">H</span><span>Home</span></a>
+          <a href="/explore"><span class="x-icon" aria-hidden="true">E</span><span>Explore</span></a>
+          <a href="/i/chat" data-testid="AppTabBar_Messages_Link"><span class="x-icon" aria-hidden="true">C</span><span>Chat</span></a>
         </nav>
       </aside>
       <main class="x-primary" data-testid="primaryColumn">
         <h2>Primary column</h2>
-        <p>Expected: left column stays expanded, right column visible, and the right toggle matches the native dock buttons.</p>
+        <p>Expected: left column starts as a Chat-style icon rail, the left toggle expands it, and the right toggle matches the native dock buttons.</p>
       </main>
       <aside class="x-sidebar" data-testid="sidebarColumn">
         <h3>Right column</h3>
@@ -38,7 +39,8 @@ function renderStatusFixture() {
     <div class="x-shell" id="debug-layout">
       <aside class="x-left" id="debug-left-column">
         <nav>
-          <a href="/home"><span>Home</span></a>
+          <a href="/home"><span class="x-icon" aria-hidden="true">H</span><span>Home</span></a>
+          <a href="/i/chat" data-testid="AppTabBar_Messages_Link"><span class="x-icon" aria-hidden="true">C</span><span>Chat</span></a>
         </nav>
       </aside>
       <main class="x-primary" data-testid="primaryColumn">
@@ -62,6 +64,7 @@ function refreshState() {
 
 function startApp() {
   app?.stop();
+  document.getElementById("x-tweaks-left-column-toggle")?.remove();
   document.getElementById("x-tweaks-right-column-toggle")?.remove();
   app = createXTweaks(window, { pathname: debugPathname });
   app.start();
