@@ -20,6 +20,22 @@ const scripts = [
     grant: ["none"]
   },
   {
+    id: "x-reader",
+    name: "X Reader Layout",
+    version: "1.0.0",
+    entry: "src/scripts/x-reader/index.js",
+    output: "dist/x-reader.user.js",
+    homepagePath: "#x-reader",
+    description:
+      "Collapse X's right column by default, widen the timeline, and enlarge photos/videos, with a floating toggle button styled like X's Grok/Chat dock.",
+    namespace: "http://tampermonkey.net/",
+    author: "Longbiao CHEN",
+    match: ["https://x.com/*", "https://twitter.com/*"],
+    runAt: "document-start",
+    grant: ["none"],
+    run: "runXReader(window);"
+  },
+  {
     id: "gitlab-tweaks",
     name: "GitLab Tweaks",
     version: "1.8.1",
